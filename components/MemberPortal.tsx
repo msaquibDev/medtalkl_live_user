@@ -34,6 +34,7 @@ import type {
 import { activeVideoPaymentProvider } from "@/lib/payments";
 import type { VideoPaymentReceipt } from "@/lib/payments";
 import { BrandLogo } from "@/components/BrandLogo";
+import { FormDropdown } from "@/components/FormDropdown";
 
 const MEMBER_KEY = "meditalk-member";
 const MEMBERS_KEY = "meditalk-members";
@@ -172,7 +173,7 @@ function Footer() {
     <footer className="site-footer">
       <div className="footer-inner">
         <Link href="/" className="footer-logo">
-          Meditalk<span>Live</span>
+          Medtalk<span>.Live</span>
         </Link>
         <nav>
           <Link href="/#about">About Us</Link>
@@ -869,25 +870,46 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
     <SiteLayout>
       <main className="auth-page">
         <form className="auth-form" onSubmit={submit}>
-          <div className="auth-form-heading">
-            <span className="eyebrow">
-              {mode === "login" ? "MEMBER ACCESS" : "CREATE YOUR PROFILE"}
-            </span>
-            <h2>
+          <div
+            className="auth-form-heading"
+            style={{
+              margin: "0 0 36px",
+
+              padding: 0,
+              width: "100%",
+              maxWidth: "100%",
+            }}
+          >
+            <Image
+              src="/Medtalk-Logo.png"
+              alt="Meditalk"
+              width={220}
+              height={80}
+              priority
+              style={{
+                display: "block",
+                objectFit: "contain",
+                margin: "0 auto",
+              }}
+            />
+            <h2
+              style={{
+                marginTop: 11,
+                marginBottom: 13,
+                marginLeft: 0,
+                marginRight: 0,
+                textAlign: "center" /* only if you want the h2 centered too */,
+              }}
+            >
               {mode === "login"
                 ? "Sign in to your account"
                 : "Join the community"}
             </h2>
-            <p>
-              {mode === "login"
-                ? "Pick up where you left off."
-                : "All fields marked with * are required."}
-            </p>
           </div>
           {mode === "register" && (
             <>
               <label>
-                Full name*
+                Full Name*
                 <input
                   name="name"
                   autoComplete="name"
@@ -907,16 +929,18 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
               </label>
               <div className="form-pair">
                 <label>
-                  Phone code*
-                  <select name="phoneCode" defaultValue="+91">
-                    <option>+91</option>
-                    <option>+1</option>
-                    <option>+44</option>
-                    <option>+971</option>
-                  </select>
+                  Phone Code*
+                  <FormDropdown
+                    name="phoneCode"
+                    defaultValue="+91"
+                    options={["+91", "+1", "+44", "+971"].map((value) => ({
+                      value,
+                      label: value,
+                    }))}
+                  />
                 </label>
                 <label>
-                  Mobile number*
+                  Mobile Number*
                   <input
                     name="mobile"
                     type="tel"
@@ -927,7 +951,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
                 </label>
               </div>
               <label>
-                Hospital / Medical College / Institute name*
+                Hospital / Medical College / Institute Name*
                 <input
                   name="institute"
                   placeholder="Your institution"
@@ -936,14 +960,15 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
               </label>
               <label>
                 Speciality*
-                <select name="speciality" defaultValue="" required>
-                  <option value="" disabled>
-                    Select your speciality
-                  </option>
-                  {specialities.map((item) => (
-                    <option key={item.id}>{item.name}</option>
-                  ))}
-                </select>
+                <FormDropdown
+                  name="speciality"
+                  placeholder="Select Your Speciality"
+                  required
+                  options={specialities.map((item) => ({
+                    value: item.name,
+                    label: item.name,
+                  }))}
+                />
               </label>
             </>
           )}
@@ -982,7 +1007,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
           </label>
           {mode === "register" && (
             <label>
-              Confirm password*
+              Confirm Password*
               <input
                 name="confirmPassword"
                 type="password"
@@ -1009,7 +1034,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
           </button>
           <p className="auth-switch">
             {mode === "login"
-              ? "New to Meditalk Live?"
+              ? "New to Medtalk Live?"
               : "Already have an account?"}{" "}
             <Link href={mode === "login" ? "/register" : "/login"}>
               {mode === "login" ? "Create an account" : "Sign in"}
@@ -1048,7 +1073,7 @@ function MemberPageFrame({
             </h1>
             {intro && <p>{intro}</p>}
           </div>
-          <Link href="/member/profile" className="profile-shortcut">
+          {/* <Link href="/member/profile" className="profile-shortcut">
             <span>
               {member.name
                 .split(" ")
@@ -1061,7 +1086,7 @@ function MemberPageFrame({
               <b>{member.name}</b>
               <small>{member.speciality}</small>
             </div>
-          </Link>
+          </Link> */}
         </div>
         {children}
       </main>
@@ -1083,7 +1108,7 @@ export function MemberDashboard() {
     .filter((video) => video.type === "Free" || purchasedIds.includes(video.id))
     .slice(0, 4);
   return (
-    <MemberPageFrame intro="Your speciality, your community, your next learning moment.">
+    <MemberPageFrame>
       <div className="dashboard-shortcuts">
         <Link href="/member/conferences?status=Live">
           <span className="shortcut-icon live-shortcut">
@@ -1386,6 +1411,7 @@ export function LearningPage() {
 
 export function ProfilePage() {
   const { member } = useMemberGuard();
+  const { specialities } = useCatalog();
   const router = useRouter();
   const [saved, setSaved] = useState(false);
   if (!member) return <div className="member-loading" />;
@@ -1427,7 +1453,7 @@ export function ProfilePage() {
     >
       <form className="profile-form" onSubmit={save}>
         <label>
-          Full name*
+          Full Name*
           <input name="name" defaultValue={member.name} required />
         </label>
         <label>
@@ -1436,26 +1462,38 @@ export function ProfilePage() {
         </label>
         <div className="form-pair">
           <label>
-            Phone code
-            <select name="phoneCode" defaultValue={member.phoneCode}>
-              <option>+91</option>
-              <option>+1</option>
-              <option>+44</option>
-              <option>+971</option>
-            </select>
+            Phone Code
+            <FormDropdown
+              name="phoneCode"
+              defaultValue={member.phoneCode}
+              options={["+91", "+1", "+44", "+971"].map((value) => ({
+                value,
+                label: value,
+              }))}
+            />
           </label>
           <label>
-            Mobile number
+            Mobile Number
             <input name="mobile" defaultValue={member.mobile} required />
           </label>
         </div>
         <label>
-          Hospital / Medical College / Institute name*
+          Hospital / Medical College / Institute Name*
           <input name="institute" defaultValue={member.institute} required />
         </label>
         <label>
           Speciality*
-          <input name="speciality" defaultValue={member.speciality} required />
+          <FormDropdown
+            name="speciality"
+            defaultValue={member.speciality}
+            required
+            options={Array.from(
+              new Set([
+                member.speciality,
+                ...specialities.map((item) => item.name),
+              ]),
+            ).map((value) => ({ value, label: value }))}
+          />
         </label>
         {saved && (
           <p className="success-note">
