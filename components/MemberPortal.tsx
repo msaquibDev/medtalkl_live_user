@@ -8,21 +8,17 @@ import {
   useMemo,
   useState,
   type FormEvent,
-  type ReactNode,
 } from "react";
 import {
-  ArrowDownToLine,
   ArrowRight,
+  BookOpen,
   CalendarDays,
   Check,
-  Clock3,
   MapPin,
-  Menu,
   Play,
   Search,
-  Stethoscope,
+  UsersRound,
   Video,
-  X,
 } from "lucide-react";
 import { useCatalog } from "@/components/CatalogProvider";
 import type {
@@ -31,495 +27,192 @@ import type {
   FacultyVideo,
   Member,
 } from "@/lib/catalog/model";
-import { activeVideoPaymentProvider } from "@/lib/payments";
-import type { VideoPaymentReceipt } from "@/lib/payments";
-import { BrandLogo } from "@/components/BrandLogo";
 import { FormDropdown } from "@/components/FormDropdown";
+import { SiteLayout } from "@/components/MemberSiteLayout";
+import {
+  ConferenceCard,
+  MemberPageFrame,
+  SectionHeading,
+  useMemberGuard,
+  VideoCard,
+} from "@/components/MemberComponents";
 
 const MEMBER_KEY = "meditalk-member";
 const MEMBERS_KEY = "meditalk-members";
 
-function memberSession(): Member | null {
+type LearningEntitlements = { videoIds: number[]; conferenceIds: number[] };
+const EMPTY_ENTITLEMENTS: LearningEntitlements = { videoIds: [], conferenceIds: [] };
+const DEMO_LEARNING_KEY = "medtalk-demo-learning";
+const demoLearningKey = (email?: string) => `${DEMO_LEARNING_KEY}:${email?.toLowerCase() || "guest"}`;
+
+function readDemoLearning(email?: string): LearningEntitlements {
   try {
-    return JSON.parse(
-      sessionStorage.getItem(MEMBER_KEY) || "null",
-    ) as Member | null;
+    const saved = JSON.parse(localStorage.getItem(demoLearningKey(email)) || "null") as Partial<LearningEntitlements> | null;
+    return {
+      videoIds: Array.isArray(saved?.videoIds) ? saved.videoIds.filter(Number.isInteger) : [],
+      conferenceIds: Array.isArray(saved?.conferenceIds) ? saved.conferenceIds.filter(Number.isInteger) : [],
+    };
   } catch {
-    return null;
+    return EMPTY_ENTITLEMENTS;
   }
 }
 
-function purchasedVideos(email: string): number[] {
-  try {
-    const purchases = JSON.parse(
-      localStorage.getItem("meditalk-video-purchases") || "{}",
-    ) as Record<string, number[]>;
-    return purchases[email] || [];
-  } catch {
-    return [];
-  }
-}
-
-function usePurchasedVideoIds(email?: string): number[] {
-  const [videoIds, setVideoIds] = useState<number[]>([]);
+function usePurchasedLearning(email?: string): LearningEntitlements {
+  const [entitlements, setEntitlements] = useState<LearningEntitlements>(EMPTY_ENTITLEMENTS);
   useEffect(() => {
     if (!email) {
-      setVideoIds([]);
-      return;
-    }
-    if (activeVideoPaymentProvider.mode === "demo") {
-      setVideoIds(purchasedVideos(email));
+      setEntitlements(EMPTY_ENTITLEMENTS);
       return;
     }
     let current = true;
+    const demo = readDemoLearning(email);
     fetch("/api/member/my-learning", { cache: "no-store" })
-      .then(async (response) =>
-        response.ok
-          ? ((await response.json()) as { videoIds?: number[] })
-          : { videoIds: [] },
-      )
-      .then((result) => {
-        if (current) setVideoIds(result.videoIds || []);
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not load your purchased items.");
+        return await response.json() as Partial<LearningEntitlements>;
       })
-      .catch(() => {
-        if (current) setVideoIds([]);
-      });
-    return () => {
-      current = false;
-    };
-  }, [email]);
-  return videoIds;
-}
-
-function Header({
-  signedIn = false,
-  member,
-}: {
-  signedIn?: boolean;
-  member?: Member | null;
-}) {
-  const [open, setOpen] = useState(false);
-  const router = useRouter();
-  function logout() {
-    sessionStorage.removeItem(MEMBER_KEY);
-    router.push("/");
-  }
-  return (
-    <header className="site-header">
-      <div className="site-header-inner">
-        <BrandLogo
-          href={signedIn ? "/member/dashboard" : "/"}
-          className="site-brand"
-          label="Meditalk Live home"
-        />
-        {signedIn ? (
-          <>
-            <button
-              className="mobile-menu"
-              onClick={() => setOpen(!open)}
-              aria-label="Toggle menu"
-            >
-              {open ? <X /> : <Menu />}
-            </button>
-            <nav className={`member-nav ${open ? "is-open" : ""}`}>
-              <Link href="/member/conferences?status=Live">Conferences</Link>
-              <Link href="/member/faculty">Faculty</Link>
-              <Link href="/member/videos">My Learning</Link>
-              <Link href="/member/profile" className="member-chip">
-                <span>
-                  {(member?.name || "Doctor")
-                    .split(" ")
-                    .map((part) => part[0])
-                    .slice(0, 2)
-                    .join("")
-                    .toUpperCase()}
-                </span>
-                {member?.name?.split(" ")[0] || "My Profile"}
-              </Link>
-              <div className="member-subnav">
-                <Link href="/member/conferences?status=Live">
-                  Live Conference
-                </Link>
-                <Link href="/member/conferences?status=Upcoming">
-                  Upcoming Conferences
-                </Link>
-                <Link href="/member/conferences?status=Recorded">
-                  Recorded Conference
-                </Link>
-                <Link href="/member/faculty">Faculty</Link>
-                <Link href="/member/videos">Faculty Video</Link>
-                <Link href="/member/profile">My Profile</Link>
-                <button onClick={logout}>Logout</button>
-              </div>
-            </nav>
-          </>
-        ) : (
-          <div className="header-actions">
-            <Link className="login-link" href="/login">
-              Login
-            </Link>
-            <Link className="button button-primary" href="/register">
-              Register <ArrowRight size={15} />
-            </Link>
-          </div>
-        )}
-      </div>
-    </header>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="site-footer">
-      <div className="footer-inner">
-        <Link href="/" className="footer-logo">
-          Medtalk<span>.Live</span>
-        </Link>
-        <nav>
-          <Link href="/#about">About Us</Link>
-          <Link href="/#contact">Contact Us</Link>
-          <Link href="/login">Login</Link>
-        </nav>
-        <p>
-          © 2026 HealthcareTalk.Live by SaaScraft Studio (India) Pvt. Ltd. All
-          rights reserved.
-        </p>
-      </div>
-    </footer>
-  );
-}
-
-function useMemberGuard() {
-  const router = useRouter();
-  const [member, setMember] = useState<Member | null>(null);
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const current = memberSession();
-    setMember(current);
-    setReady(true);
-    if (!current) router.replace("/login");
-  }, [router]);
-  return { member, ready };
-}
-
-function SiteLayout({
-  children,
-  signedIn,
-  member,
-}: {
-  children: ReactNode;
-  signedIn?: boolean;
-  member?: Member | null;
-}) {
-  return (
-    <div className="member-site">
-      <Header signedIn={signedIn} member={member} />
-      {children}
-      <Footer />
-    </div>
-  );
-}
-
-function ConferenceCard({
-  conference,
-  action = "register",
-}: {
-  conference: Conference;
-  action?: "register" | "dashboard" | "view";
-}) {
-  const [date, time] = conference.start.split("|").map((part) => part.trim());
-  const buttonText =
-    action === "view"
-      ? "View recording"
-      : action === "dashboard"
-        ? conference.status === "Live"
-          ? "Join now"
-          : conference.type === "Paid"
-            ? "Pay now"
-            : "View details"
-        : "Register";
-  return (
-    <article className="conference-card">
-      <div className="conference-cover">
-        <Image
-          src={conference.banner || "/conference-placeholder.svg"}
-          alt={`${conference.name} cover`}
-          fill
-          sizes="(max-width: 700px) 92vw, 360px"
-          unoptimized
-        />
-        <span className={`conference-state ${conference.status.toLowerCase()}`}>
-          {conference.status === "Live" ? <i /> : null}
-          {conference.status}
-        </span>
-      </div>
-      <div className="conference-card-body">
-        <div className="conference-title-row">
-          <h3>{conference.name}</h3>
-          <span className={`price-tag ${conference.type.toLowerCase()}`}>
-            {conference.type}
-          </span>
-        </div>
-        <p className="info-line">
-          <CalendarDays />
-          {date}
-          {conference.end ? ` – ${conference.end.split("|")[0].trim()}` : ""}
-        </p>
-        <p className="info-line">
-          <Clock3 />
-          {time || "Time to be announced"}
-        </p>
-        <p className="info-line">
-          <MapPin />
-          {conference.venue}
-        </p>
-        {conference.agenda ? (
-          <a
-            className="agenda-link"
-            href={conference.agenda}
-            target="_blank"
-            rel="noreferrer"
-            download
-          >
-            <ArrowDownToLine />
-            Download Agenda
-          </a>
-        ) : (
-          <span className="agenda-unavailable">Agenda not available yet</span>
-        )}
-        <div className="card-tags">
-          <span>{conference.speciality || "Conference"}</span>
-          <span>{conference.type}</span>
-        </div>
-        <a
-          className={`button conference-cta ${action === "view" ? "button-outline" : "button-primary"}`}
-          href={
-            action === "register"
-              ? "/register"
-              : conference.accessLink ||
-                `/member/conferences?status=${conference.status}`
-          }
-          target={
-            action === "register" || !conference.accessLink
-              ? undefined
-              : "_blank"
-          }
-          rel={conference.accessLink ? "noreferrer" : undefined}
-        >
-          {buttonText}
-          {conference.status === "Live" && action === "dashboard" ? (
-            <Play size={14} fill="currentColor" />
-          ) : (
-            <ArrowRight size={15} />
-          )}
-        </a>
-      </div>
-    </article>
-  );
-}
-
-function SectionHeading({
-  kicker,
-  title,
-  href,
-  link = "View all",
-}: {
-  kicker?: string;
-  title: string;
-  href?: string;
-  link?: string;
-}) {
-  return (
-    <div className="section-heading">
-      <div>
-        {kicker && <span className="eyebrow">{kicker}</span>}
-        <h2>{title}</h2>
-      </div>
-      {href && (
-        <Link href={href}>
-          {link}
-          <ArrowRight size={16} />
-        </Link>
-      )}
-    </div>
-  );
-}
-
-function VideoCard({
-  video,
-  faculty,
-  compact = false,
-}: {
-  video: FacultyVideo;
-  faculty: Faculty;
-  compact?: boolean;
-}) {
-  const router = useRouter();
-  const [unlocked, setUnlocked] = useState(video.type === "Free");
-  const [checkout, setCheckout] = useState(false);
-  const [paymentError, setPaymentError] = useState("");
-  const member = memberSession();
-  const purchasedIds = usePurchasedVideoIds(member?.email);
-  useEffect(() => {
-    setUnlocked(video.type === "Free" || purchasedIds.includes(video.id));
-  }, [video.id, video.type, purchasedIds]);
-  function startCheckout() {
-    const member = memberSession();
-    if (!member) {
-      router.push(`/login?next=${encodeURIComponent("/member/videos")}`);
-      return;
-    }
-    setCheckout(true);
-  }
-  async function completeVideoPurchase() {
-    const member = memberSession();
-    if (!member) {
-      router.push("/login");
-      return;
-    }
-    setPaymentError("");
-    let receipt: VideoPaymentReceipt;
-    try {
-      receipt = await activeVideoPaymentProvider.pay({
-        videoId: video.id,
-        videoTitle: video.title,
-        amount: video.amount,
-        memberEmail: member.email,
-      });
-      if (!receipt.paymentId)
-        throw new Error("Payment provider returned no receipt.");
-    } catch {
-      setPaymentError("Payment could not be completed. Please try again.");
-      return;
-    }
-    if (receipt.provider === "demo") {
-      const purchases = (() => {
-        try {
-          return JSON.parse(
-            localStorage.getItem("meditalk-video-purchases") || "{}",
-          ) as Record<string, number[]>;
-        } catch {
-          return {};
+      .then((result) => {
+        if (current) {
+          setEntitlements({
+            videoIds: Array.from(new Set([...demo.videoIds, ...(Array.isArray(result.videoIds) ? result.videoIds.filter(Number.isInteger) : [])])),
+            conferenceIds: Array.from(new Set([...demo.conferenceIds, ...(Array.isArray(result.conferenceIds) ? result.conferenceIds.filter(Number.isInteger) : [])])),
+          });
         }
-      })();
-      purchases[member.email] = Array.from(
-        new Set([...(purchases[member.email] || []), video.id]),
-      );
-      localStorage.setItem(
-        "meditalk-video-purchases",
-        JSON.stringify(purchases),
-      );
-    }
-    setUnlocked(true);
-    setCheckout(false);
-  }
+      })
+      .catch(() => { if (current) setEntitlements(demo); });
+    return () => { current = false; };
+  }, [email]);
+  return entitlements;
+}
+
+export function FacultyVideoDetail() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { faculty, videos } = useCatalog();
+  const { member } = useMemberGuard();
+  const video = featuredFacultyVideos(videos, faculty).find(
+    (item) => item.id === Number(id),
+  );
+  const speaker = video ? videoFaculty(video, faculty) : undefined;
+  const purchased = usePurchasedLearning(member?.email);
+  const unlocked =
+    video?.type === "Free" ||
+    Boolean(video && purchased.videoIds.includes(video.id));
+  const playableLink = Boolean(
+    video?.link &&
+    video.link !== "#" &&
+    !video.link.includes("video.meditalk.in/"),
+  );
+
   return (
-    <>
-      <article
-        className={`conference-card faculty-video-card ${compact ? "compact" : ""}`}
+    <MemberPageFrame
+      title={video?.title || "Faculty Video"}
+      intro={
+        speaker
+          ? `${speaker.name} · ${video?.speciality}`
+          : "Watch expert faculty sessions."
+      }
+      active="learning"
+    >
+      <Link
+        href={speaker ? `/member/faculty/${speaker.id}` : "/member/videos"}
+        className="back-to"
       >
-        <div className="conference-cover video-thumb">
-          <span className="play-button">
-            <Play size={17} fill="currentColor" />
-          </span>
-          <span className="video-duration">
-            {video.type === "Paid" ? video.amount : "Free"}
-          </span>
-        </div>
-        <div className="conference-card-body">
-          <div className="conference-title-row">
-            <h3>{video.title}</h3>
-            <span className={`price-tag ${video.type.toLowerCase()}`}>
-              {video.type}
-            </span>
-          </div>
-          <p className="info-line">
-            <Video />
-            {faculty.name}
-          </p>
-          <p className="info-line">
-            <Stethoscope />
-            {video.speciality}
-          </p>
-          <p className="info-line">
-            <MapPin />
-            {faculty.institute}
-          </p>
-          <div className="card-tags">
-            <span>Faculty video</span>
-            <span>{video.type}</span>
-          </div>
-          {unlocked ? (
-            <a
-              className="button conference-cta button-primary"
-              href={video.link}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Play video <Play size={14} fill="currentColor" />
-            </a>
-          ) : (
-            <button
-              className="button conference-cta button-primary"
-              type="button"
-              onClick={startCheckout}
-            >
-              Pay now · {video.amount} <ArrowRight size={15} />
-            </button>
-          )}
-        </div>
-      </article>
-      {checkout && (
-        <div
-          className="checkout-overlay"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setCheckout(false);
-          }}
-        >
-          <section
-            className="checkout-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`checkout-title-${video.id}`}
-          >
-            <span className="eyebrow">
-              {activeVideoPaymentProvider.mode === "demo"
-                ? "DEMO CHECKOUT"
-                : "SECURE CHECKOUT"}
-            </span>
-            <h2 id={`checkout-title-${video.id}`}>Unlock this faculty video</h2>
-            <p>{video.title}</p>
-            <div className="checkout-price">{video.amount}</div>
-            {activeVideoPaymentProvider.mode === "demo" && (
-              <small>Demo payment only. No real charge will be made.</small>
+        ← Back to Faculty Videos
+      </Link>
+      {video && speaker ? (
+        <article className="video-detail-card">
+          <div className="video-detail-player">
+            {unlocked && playableLink ? (
+              <iframe
+                src={videoEmbedUrl(video.link)}
+                title={video.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : unlocked ? (
+              <div className="video-paywall">
+                <span className="play-button">
+                  <Play size={22} fill="currentColor" />
+                </span>
+                <h2>Video Coming Soon</h2>
+                <p>
+                  This demo video will be playable once its video link is
+                  connected.
+                </p>
+              </div>
+            ) : (
+              <div className="video-paywall">
+                <span className="play-button">
+                  <Play size={22} fill="currentColor" />
+                </span>
+                <h2>Unlock this faculty video</h2>
+                <p>
+                  Complete payment to watch this session and add it to My
+                  Learning.
+                </p>
+                <strong>{video.amount}</strong>
+                <button
+                  className="button button-primary"
+                  type="button"
+                  onClick={() => router.push(`/member/checkout/video/${video.id}`)}
+                >
+                  Pay now <ArrowRight size={16} />
+                </button>
+              </div>
             )}
-            {paymentError && (
-              <p className="form-error" role="alert">
-                {paymentError}
-              </p>
+          </div>
+          <div className="video-detail-copy">
+            <div>
+              <span className={`price-tag ${video.type.toLowerCase()}`}>
+                {video.type}
+              </span>
+              <span className="eyebrow">{video.speciality}</span>
+            </div>
+            <h1>{video.title}</h1>
+            <p>
+              Presented by{" "}
+              <Link href={`/member/faculty/${speaker.id}`}>{speaker.name}</Link>{" "}
+              · {speaker.institute}
+            </p>
+            {unlocked && playableLink && (
+              <a
+                className="button button-outline"
+                href={video.link}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open Video in New Tab <ArrowRight size={15} />
+              </a>
             )}
-            <button
-              className="button button-primary"
-              onClick={completeVideoPurchase}
-            >
-              {activeVideoPaymentProvider.mode === "demo"
-                ? "Complete demo payment"
-                : "Pay with Razorpay"}{" "}
-              <Check size={16} />
-            </button>
-            <button
-              className="checkout-cancel"
-              onClick={() => setCheckout(false)}
-            >
-              Cancel
-            </button>
-          </section>
-        </div>
+          </div>
+        </article>
+      ) : (
+        <div className="empty-note">This video could not be found.</div>
       )}
-    </>
+    </MemberPageFrame>
   );
 }
 
+function videoEmbedUrl(link: string) {
+  try {
+    const url = new URL(link);
+    if (url.hostname.includes("youtu.be"))
+      return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1)}`;
+    if (url.hostname.includes("youtube.com")) {
+      const id = url.searchParams.get("v");
+      if (id) return `https://www.youtube-nocookie.com/embed/${id}`;
+      if (url.pathname.startsWith("/embed/")) return link;
+    }
+    if (url.hostname.includes("vimeo.com")) {
+      const id = url.pathname.split("/").filter(Boolean).pop();
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    }
+  } catch {
+    /* Use the provided video URL as an iframe source. */
+  }
+  return link;
+}
 function padConferences(
   rows: Conference[],
   status: Conference["status"],
@@ -550,6 +243,86 @@ function padConferences(
     });
   }
   return list;
+}
+
+function featuredConferences(conferences: Conference[]) {
+  const live = padConferences(
+    conferences.filter((item) => item.status === "Live"),
+    "Live",
+    [
+      "Live Urology Case Forum",
+      "Advances in Endourology",
+      "Robotic Surgery Exchange",
+      "Uro-Oncology Tumor Board",
+    ],
+  );
+  const upcoming = padConferences(
+    conferences.filter((item) => item.status === "Upcoming"),
+    "Upcoming",
+    [
+      "Urology Update 2026",
+      "Endourology Masterclass",
+      "Precision Oncology Summit",
+      "Advances in Andrology",
+    ],
+  );
+  return [live[0], upcoming[0], live[1], upcoming[1]];
+}
+
+function allLearningConferences(conferences: Conference[]) {
+  const items = new Map(conferences.map((conference) => [conference.id, conference]));
+  for (const conference of featuredConferences(conferences)) {
+    items.set(conference.id, conference);
+  }
+  return Array.from(items.values());
+}
+
+function featuredFacultyVideos(videos: FacultyVideo[], faculty: Faculty[]) {
+  const list = videos.slice(0, 4);
+  const titles = [
+    "Clinical Decision Making: A Practical Guide",
+    "New Approaches to Complex Cases",
+    "Evidence Based Care in Practice",
+    "A Specialist's Guide to Better Outcomes",
+  ];
+  while (list.length < 4) {
+    const index = list.length;
+    const source = videos[0];
+    const person = faculty[index % Math.max(faculty.length, 1)];
+    list.push(
+      source
+        ? {
+            ...source,
+            id: -301 - index,
+            title: titles[index],
+            facultyId: person?.id ?? source.facultyId,
+            speciality: person?.speciality ?? source.speciality,
+          }
+        : {
+            id: -301 - index,
+            title: titles[index],
+            facultyId: person?.id ?? -1,
+            speciality: person?.speciality ?? "Clinical Practice",
+            link: "",
+            type: "Free",
+            amount: "Free",
+          },
+    );
+  }
+  return list;
+}
+
+function videoFaculty(video: FacultyVideo, faculty: Faculty[]): Faculty {
+  return (
+    faculty.find((person) => person.id === video.facultyId) || {
+      id: video.facultyId,
+      name: "Meditalk Faculty",
+      email: "",
+      phone: "",
+      institute: "Meditalk Live",
+      speciality: video.speciality,
+    }
+  );
 }
 
 export function PublicHome() {
@@ -644,76 +417,10 @@ export function PublicHome() {
   }
   return (
     <SiteLayout>
-      <main>
-        {/* <section className="public-hero">
-          <div className="hero-inner">
-            <div className="hero-copy">
-              <span className="eyebrow">
-                <i /> THE MEDICAL COMMUNITY, CONNECTED
-              </span>
-              <h1>
-                Where medical
-                <br />
-                knowledge <em>comes alive.</em>
-              </h1>
-              <p>
-                Join live conferences, learn from leading faculty, and keep
-                growing with a community that moves medicine forward.
-              </p>
-              <div className="hero-buttons">
-                <Link href="#live" className="button button-primary">
-                  Explore conferences <ArrowRight size={16} />
-                </Link>
-                <Link href="/register" className="button button-ghost">
-                  Create your account
-                </Link>
-              </div>
-              <div className="hero-proof">
-                <div className="proof-avatars">
-                  <span>AM</span>
-                  <span>PS</span>
-                  <span>RK</span>
-                  <span>+</span>
-                </div>
-                <span>
-                  Trusted by <b>medical professionals</b>
-                  <br />
-                  across India
-                </span>
-              </div>
-            </div>
-            <div className="hero-art">
-              <div className="hero-orbit orbit-one" />
-              <div className="hero-orbit orbit-two" />
-              <div className="hero-stethoscope">
-                <Stethoscope size={166} strokeWidth={1.05} />
-              </div>
-              <div className="hero-float-card">
-                <span className="float-icon">
-                  <Video size={17} />
-                </span>
-                <span>
-                  <b>Learn from the best</b>
-                  <small>Expert led. Always relevant.</small>
-                </span>
-                <span className="live-dot" />
-              </div>
-              <div className="hero-float-stat">
-                <b>01</b>
-                <span>
-                  community
-                  <br />
-                  for clinicians
-                </span>
-              </div>
-              <div className="hero-vertical">LEARN · SHARE · ADVANCE</div>
-            </div>
-          </div>
-          <div className="hero-bottom">
-            <span>CONTINUING MEDICAL EDUCATION</span>
-            <span>LIVE CONFERENCES</span>
-            <span>EXPERT FACULTY</span>
-            <span>ON-DEMAND LEARNING</span>
+      <main className="member-home">
+        {/* <section className="home-hero">
+          <div className="home-hero-copy">
+            <h1>Medtalk.live</h1>
           </div>
         </section> */}
         <section className="content-section" id="live">
@@ -1046,94 +753,76 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
   );
 }
 
-function MemberPageFrame({
-  children,
-  title,
-  intro,
-  active = "",
-}: {
-  children: ReactNode;
-  title?: string;
-  intro?: string;
-  active?: string;
-}) {
-  const { member, ready } = useMemberGuard();
-  if (!ready || !member) return <div className="member-loading" />;
-  return (
-    <SiteLayout signedIn member={member}>
-      <main className="member-page">
-        <div className="member-welcome">
-          <div>
-            <span className="eyebrow">
-              {active ? `MY ${active.toUpperCase()}` : "YOUR LEARNING SPACE"}
-            </span>
-            <h1>
-              {title || `Hello, ${member.name.split(" ")[0]}`}
-              <span className="welcome-mark">.</span>
-            </h1>
-            {intro && <p>{intro}</p>}
-          </div>
-          {/* <Link href="/member/profile" className="profile-shortcut">
-            <span>
-              {member.name
-                .split(" ")
-                .map((part) => part[0])
-                .slice(0, 2)
-                .join("")
-                .toUpperCase()}
-            </span>
-            <div>
-              <b>{member.name}</b>
-              <small>{member.speciality}</small>
-            </div>
-          </Link> */}
-        </div>
-        {children}
-      </main>
-    </SiteLayout>
-  );
-}
-
 export function MemberDashboard() {
   const { conferences, faculty, videos } = useCatalog();
   const { member } = useMemberGuard();
-  const purchasedIds = usePurchasedVideoIds(member?.email);
+  const purchased = usePurchasedLearning(member?.email);
   if (!member) return <div className="member-loading" />;
-  const relevant = conferences.filter(
-    (item) =>
-      (item.status === "Live" || item.status === "Upcoming") &&
-      (!member.speciality || item.speciality === member.speciality),
+  const relevant = featuredConferences(conferences);
+  const featuredVideos = featuredFacultyVideos(videos, faculty);
+  const learningConferences = allLearningConferences(conferences).filter((item) =>
+    purchased.conferenceIds.includes(item.id),
   );
-  const learn = videos
-    .filter((video) => video.type === "Free" || purchasedIds.includes(video.id))
+  const learn = featuredVideos
+    .filter((video) => purchased.videoIds.includes(video.id))
     .slice(0, 4);
+  const shortcuts = [
+    {
+      href: "/member/conferences?status=Live",
+      title: "Live Conferences",
+      description: "Join sessions happening now",
+      icon: Video,
+      tone: "live-shortcut",
+    },
+    {
+      href: "/member/conferences?status=Upcoming",
+      title: "Upcoming Conferences",
+      description: "Explore what is coming next",
+      icon: CalendarDays,
+      tone: "upcoming-shortcut",
+    },
+    {
+      href: "/member/conferences?status=Recorded",
+      title: "Recorded Conferences",
+      description: "Watch conference recordings",
+      icon: Play,
+      tone: "recorded-shortcut",
+    },
+    {
+      href: "/member/faculty",
+      title: "Faculty",
+      description: "Meet expert clinicians",
+      icon: UsersRound,
+      tone: "faculty-shortcut",
+    },
+    {
+      href: "/member/videos",
+      title: "Faculty Video",
+      description: "Browse talks and lessons",
+      icon: Video,
+      tone: "faculty-video-shortcut",
+    },
+    {
+      href: "/member/learning",
+      title: "My Learning",
+      description: `${purchased.videoIds.length + purchased.conferenceIds.length} paid item${purchased.videoIds.length + purchased.conferenceIds.length === 1 ? "" : "s"} unlocked`,
+      icon: BookOpen,
+      tone: "learning-shortcut",
+    },
+  ];
   return (
     <MemberPageFrame>
       <div className="dashboard-shortcuts">
-        <Link href="/member/conferences?status=Live">
-          <span className="shortcut-icon live-shortcut">
-            <Video />
-          </span>
-          <b>Live conference</b>
-          <small>Join the conversation</small>
-          <ArrowRight />
-        </Link>
-        <Link href="/member/conferences?status=Upcoming">
-          <span className="shortcut-icon upcoming-shortcut">
-            <CalendarDays />
-          </span>
-          <b>Upcoming conferences</b>
-          {/* <small>Save your seat</small> */}
-          <ArrowRight />
-        </Link>
-        <Link href="/member/conferences?status=Recorded">
-          <span className="shortcut-icon recorded-shortcut">
-            <Play />
-          </span>
-          <b>Recorded conferences</b>
-          <small>Watch on demand</small>
-          <ArrowRight />
-        </Link>
+        {shortcuts.map(({ href, title, description, icon: Icon, tone }) => (
+          <Link href={href} key={title} className="dashboard-shortcut-card">
+            <span className={`shortcut-icon ${tone}`}>
+              <Icon />
+            </span>
+            <b>{title}</b>
+            <small>{description}</small>
+            <ArrowRight />
+          </Link>
+        ))}
       </div>
       <section className="member-section">
         <SectionHeading
@@ -1147,6 +836,7 @@ export function MemberDashboard() {
               key={item.id}
               conference={item}
               action="dashboard"
+              purchased={purchased.conferenceIds.includes(item.id)}
             />
           ))}
         </div>
@@ -1156,29 +846,39 @@ export function MemberDashboard() {
       </section>
       <section className="member-section">
         <SectionHeading
-          kicker="KEEP LEARNING"
-          title="My learning"
+          kicker="LEARN FROM EXPERTS"
+          title="Faculty Videos"
           href="/member/videos"
         />
         <div className="learning-grid">
-          {learn.map((video) => {
-            const speaker = faculty.find(
-              (person) => person.id === video.facultyId,
-            );
-            return speaker ? (
-              <VideoCard
-                key={video.id}
-                video={video}
-                faculty={speaker}
-                compact
-              />
-            ) : null;
-          })}
+          {featuredVideos.map((video) => (
+            <VideoCard
+              key={video.id}
+              video={video}
+              faculty={videoFaculty(video, faculty)}
+              purchased={purchased.videoIds.includes(video.id)}
+            />
+          ))}
         </div>
-        {learn.length === 0 && (
-          <div className="empty-note">
-            Your learning library is ready for its first video.
-          </div>
+      </section>
+      <section className="member-section">
+        <SectionHeading
+          kicker="KEEP LEARNING"
+          title="My learning"
+          href="/member/learning"
+        />
+        <div className="conference-grid">
+          {learningConferences.map((conference) => (
+            <ConferenceCard key={conference.id} conference={conference} action="view" />
+          ))}
+        </div>
+        <div className="learning-grid">
+          {learn.map((video) => (
+            <VideoCard key={video.id} video={video} faculty={videoFaculty(video, faculty)} compact purchased />
+          ))}
+        </div>
+        {learn.length === 0 && learningConferences.length === 0 && (
+          <div className="empty-note">Your learning library is ready for its first video or conference.</div>
         )}
       </section>
       <section className="member-section">
@@ -1229,6 +929,8 @@ function FacultyCard({ faculty, count }: { faculty: Faculty; count: number }) {
 
 export function ConferenceListing() {
   const { conferences } = useCatalog();
+  const { member } = useMemberGuard();
+  const purchased = usePurchasedLearning(member?.email);
   const search = useSearchParams();
   const status = search.get("status") || "Live";
   const list = conferences.filter((item) => item.status === status);
@@ -1259,6 +961,7 @@ export function ConferenceListing() {
               key={item.id}
               conference={item}
               action={status === "Recorded" ? "view" : "dashboard"}
+              purchased={purchased.conferenceIds.includes(item.id)}
             />
           ))}
         </div>
@@ -1267,6 +970,88 @@ export function ConferenceListing() {
           No {status.toLowerCase()} conferences yet. We’ll share new sessions
           here as soon as they’re announced.
         </div>
+      )}
+    </MemberPageFrame>
+  );
+}
+
+export function ConferenceDetail() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { conferences } = useCatalog();
+  const { member } = useMemberGuard();
+  const conference =
+    conferences.find((item) => item.id === Number(id)) ||
+    featuredConferences(conferences).find((item) => item.id === Number(id));
+  const purchased = usePurchasedLearning(member?.email);
+  const [date, time] = conference?.start.split("|").map((part) => part.trim()) || [];
+  const hasAccess = Boolean(
+    conference && (conference.type === "Free" || purchased.conferenceIds.includes(conference.id)),
+  );
+
+  return (
+    <MemberPageFrame
+      title={conference?.name || "Conference Details"}
+      intro={conference ? `${conference.status} · ${date || "Date to be announced"}` : "Conference details"}
+      active="conferences"
+    >
+      <Link
+        href={`/member/conferences?status=${conference?.status || "Live"}`}
+        className="back-to"
+      >
+        ← Back to Conferences
+      </Link>
+      {conference ? (
+        <article className="conference-detail-card">
+          <div className="conference-detail-cover">
+            <Image
+              src={conference.banner || "/conference-placeholder.svg"}
+              alt={`${conference.name} cover`}
+              fill
+              sizes="(max-width: 700px) 92vw, 900px"
+              unoptimized
+            />
+            <span className={`conference-state ${conference.status.toLowerCase()}`}>
+              {conference.status === "Live" ? <i /> : null}
+              {conference.status}
+            </span>
+          </div>
+          <div className="conference-detail-copy">
+            <div className="card-tags">
+              <span>{conference.speciality || "Conference"}</span>
+              <span>{conference.type}</span>
+            </div>
+            <h2>{conference.name}</h2>
+            <p><CalendarDays /> {date || "Date to be announced"}{time ? ` · ${time}` : ""}</p>
+            <p><MapPin /> {conference.venue || "Venue to be announced"}</p>
+            {conference.type === "Paid" && !hasAccess ? (
+              <div className="conference-paywall">
+                <strong>{conference.amount}</strong>
+                <span>Purchase access to join or watch this conference.</span>
+                <button className="button button-primary" type="button" onClick={() => router.push(`/member/checkout/conference/${conference.id}`)}>
+                  Pay now <ArrowRight size={16} />
+                </button>
+              </div>
+            ) : conference.accessLink ? (
+              <a className="button button-primary" href={conference.accessLink} target="_blank" rel="noreferrer">
+                {conference.status === "Recorded" ? "Watch Recording" : conference.status === "Live" ? "Join Conference" : "View Conference"}
+                <ArrowRight size={16} />
+              </a>
+            ) : (
+              <div className="conference-link-pending" role="status">
+                <Video />
+                <div>
+                  <strong>
+                    {conference.status === "Live" ? "The join link is not available yet" : "The video link is not available yet"}
+                  </strong>
+                  <span>The conference organizer has not published an access link for this session.</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+      ) : (
+        <div className="empty-note">This conference could not be found.</div>
       )}
     </MemberPageFrame>
   );
@@ -1319,6 +1104,8 @@ export function FacultyDirectory() {
 export function FacultyDetail() {
   const { id } = useParams<{ id: string }>();
   const { faculty, videos } = useCatalog();
+  const { member } = useMemberGuard();
+  const purchased = usePurchasedLearning(member?.email);
   const person = faculty.find((item) => item.id === Number(id));
   const list = videos.filter((video) => video.facultyId === Number(id));
   return (
@@ -1359,7 +1146,7 @@ export function FacultyDetail() {
             <SectionHeading title="Faculty videos" />
             <div className="learning-grid">
               {list.map((video) => (
-                <VideoCard key={video.id} video={video} faculty={person} />
+                <VideoCard key={video.id} video={video} faculty={person} purchased={purchased.videoIds.includes(video.id)} />
               ))}
             </div>
             {list.length === 0 && (
@@ -1374,37 +1161,139 @@ export function FacultyDetail() {
   );
 }
 
-export function LearningPage() {
+export function FacultyVideosPage() {
   const { faculty, videos } = useCatalog();
   const { member } = useMemberGuard();
-  const purchasedIds = usePurchasedVideoIds(member?.email);
-  const learningVideos = videos.filter(
-    (video) => video.type === "Free" || purchasedIds.includes(video.id),
-  );
+  const purchased = usePurchasedLearning(member?.email);
+  const catalogVideos = featuredFacultyVideos(videos, faculty);
   return (
     <MemberPageFrame
-      title="My learning"
-      intro="Free videos and the paid videos you’ve unlocked."
+      title="Faculty Videos"
+      intro="Watch free sessions or unlock paid videos from our expert faculty."
       active="learning"
     >
       <section className="member-section">
-        <SectionHeading title="Faculty videos" />
+        <SectionHeading title="All Faculty Videos" />
         <div className="learning-grid">
-          {learningVideos.map((video) => {
-            const speaker = faculty.find(
-              (person) => person.id === video.facultyId,
-            );
-            return speaker ? (
-              <VideoCard key={video.id} video={video} faculty={speaker} />
-            ) : null;
-          })}
+          {catalogVideos.map((video) => (
+            <VideoCard
+              key={video.id}
+              video={video}
+              faculty={videoFaculty(video, faculty)}
+              purchased={purchased.videoIds.includes(video.id)}
+            />
+          ))}
         </div>
-        {learningVideos.length === 0 && (
-          <div className="empty-note">
-            Your learning library is ready for its first video.
-          </div>
-        )}
       </section>
+    </MemberPageFrame>
+  );
+}
+
+export function DemoCheckoutPage() {
+  const { type, id } = useParams<{ type: string; id: string }>();
+  const router = useRouter();
+  const { conferences, faculty, videos } = useCatalog();
+  const { member } = useMemberGuard();
+  const itemId = Number(id);
+  const video = type === "video"
+    ? videos.find((entry) => entry.id === itemId) || featuredFacultyVideos(videos, faculty).find((entry) => entry.id === itemId)
+    : undefined;
+  const conference = type === "conference"
+    ? conferences.find((entry) => entry.id === itemId) || featuredConferences(conferences).find((entry) => entry.id === itemId)
+    : undefined;
+  const title = video?.title || conference?.name;
+  const amount = video?.amount || conference?.amount;
+  const speaker = video ? videoFaculty(video, faculty) : undefined;
+
+  function simulatePayment() {
+    if (!member || !title || !amount) return;
+    const current = readDemoLearning(member.email);
+    const next: LearningEntitlements = video
+      ? { ...current, videoIds: Array.from(new Set([...current.videoIds, video.id])) }
+      : { ...current, conferenceIds: Array.from(new Set([...current.conferenceIds, conference!.id])) };
+    localStorage.setItem(demoLearningKey(member.email), JSON.stringify(next));
+    router.push(video ? `/member/videos/${video.id}` : `/member/conferences/${conference!.id}`);
+  }
+
+  if (!member) return <div className="member-loading" />;
+  return (
+    <MemberPageFrame title="Checkout" intro="Review your item before continuing." active="learning">
+      <Link href={speaker ? `/member/faculty/${speaker.id}` : video ? "/member/videos" : "/member/conferences"} className="back-to">
+        ← Back
+      </Link>
+      {title && amount && (video || conference) ? (
+        <section className="demo-checkout-card">
+          <div className="demo-checkout-heading">
+            <span className="eyebrow">DEMO CHECKOUT</span>
+            <h2>Complete Your Purchase</h2>
+            <p>This is a sample checkout. No real payment will be taken.</p>
+          </div>
+          <div className="demo-checkout-item">
+            <div>
+              <span>{video ? "Faculty Video" : "Conference"}</span>
+              <h3>{title}</h3>
+              {speaker && <p>{speaker.name} · {video?.speciality}</p>}
+              {conference && <p>{conference.status} · {conference.venue}</p>}
+            </div>
+            <strong>{amount}</strong>
+          </div>
+          <div className="demo-checkout-note">
+            <strong>Demo payment mode</strong>
+            <span>Completing this step unlocks the item and adds it to My Learning. A payment API can replace this flow later.</span>
+          </div>
+          <button className="button button-primary demo-checkout-submit" type="button" onClick={simulatePayment}>
+            Complete Demo Payment <ArrowRight size={16} />
+          </button>
+        </section>
+      ) : (
+        <div className="empty-note">This paid item could not be found.</div>
+      )}
+    </MemberPageFrame>
+  );
+}
+
+export function LearningPage() {
+  const { conferences, faculty, videos } = useCatalog();
+  const { member } = useMemberGuard();
+  const purchased = usePurchasedLearning(member?.email);
+  const learningVideos = featuredFacultyVideos(videos, faculty).filter(
+    (video) => purchased.videoIds.includes(video.id),
+  );
+  const learningConferences = allLearningConferences(conferences).filter(
+    (conference) => purchased.conferenceIds.includes(conference.id),
+  );
+  const hasLearning = learningVideos.length > 0 || learningConferences.length > 0;
+  return (
+    <MemberPageFrame
+      title="My learning"
+      intro="Your purchased faculty videos and conferences, ready to continue."
+      active="learning"
+    >
+      {learningConferences.length > 0 && (
+        <section className="member-section">
+          <SectionHeading title="Purchased Conferences" />
+          <div className="conference-grid">
+            {learningConferences.map((conference) => (
+              <ConferenceCard key={conference.id} conference={conference} action="view" />
+            ))}
+          </div>
+        </section>
+      )}
+      {learningVideos.length > 0 && (
+        <section className="member-section">
+          <SectionHeading title="Purchased Faculty Videos" />
+          <div className="learning-grid">
+            {learningVideos.map((video) => (
+              <VideoCard key={video.id} video={video} faculty={videoFaculty(video, faculty)} purchased />
+            ))}
+          </div>
+        </section>
+      )}
+      {!hasLearning && (
+        <div className="empty-note">
+          Your learning library is ready for its first video or conference.
+        </div>
+      )}
     </MemberPageFrame>
   );
 }
@@ -1427,6 +1316,7 @@ export function ProfilePage() {
       speciality: String(data.get("speciality")),
     };
     sessionStorage.setItem(MEMBER_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event("medtalk:member-updated"));
     let members: (Member & { password: string })[] = [];
     try {
       members = JSON.parse(

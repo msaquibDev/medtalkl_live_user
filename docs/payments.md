@@ -1,20 +1,20 @@
-# Video payment flow
+# Razorpay purchase flow
 
-The demo provider is active by default. Copy `.env.example` to `.env.local` and leave `NEXT_PUBLIC_RAZORPAY_ENABLED=false` while the payment API is unavailable. A demo payment is clearly labelled and unlocks the video in this browser's My Learning list.
+Paid faculty videos and conferences use the Razorpay Checkout adapter in `lib/payments.ts`. A paid item remains locked unless the server verifies the Razorpay signature and records the member's entitlement. The member app reads verified video and conference IDs from `GET /api/member/my-learning`; it does not treat browser storage as proof of payment.
 
-The Razorpay Checkout adapter is in `lib/payments.ts`. After the API is implemented, set `NEXT_PUBLIC_RAZORPAY_ENABLED=true` and provide the server routes below. Restart or rebuild Next.js after changing the public environment variable.
+## Backend API contract
 
-## API contract required to enable Razorpay
+The separate backend must implement these authenticated routes before checkout can complete:
 
 ### `POST /api/payments/orders`
 
 Request:
 
 ```json
-{ "videoId": 2 }
+{ "itemType": "faculty-video", "itemId": 2 }
 ```
 
-Authenticate the member from a server-side session. Look up the video and price in trusted server data; do not use an amount supplied by the browser. Create one Razorpay order per attempt and return:
+`itemType` can be `faculty-video` or `conference`. Authenticate the member from a server-side session, look up the item and price in trusted server data, and create the order. Ignore any client supplied price. Return:
 
 ```json
 {
@@ -29,14 +29,14 @@ The amount is expressed in the currency's smallest subunit.
 
 ### `POST /api/payments/verify`
 
-Razorpay Checkout sends `videoId`, `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature` to this route. Find the original order using the authenticated member and server-side order record. Verify the signature with the server-only Razorpay secret, confirm the order is for the requested video and amount, then persist the member's video entitlement. Return `{ "verified": true }` only after verification and persistence succeed.
+The request includes `itemType`, `itemId`, `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature`. Find the original order using the authenticated member and server-side order record. Verify the signature with the server-only Razorpay secret, confirm the order belongs to the requested item and amount, and persist the member's video or conference entitlement. Return `{ "verified": true }` only after verification and persistence succeed.
 
 ### `GET /api/member/my-learning`
 
-Authenticate the member and return the video IDs whose purchases have been verified and persisted for that member:
+Authenticate the member and return only verified entitlements:
 
 ```json
-{ "videoIds": [2, 3] }
+{ "videoIds": [2, 3], "conferenceIds": [8] }
 ```
 
-The Razorpay-enabled member pages read this endpoint after reload. Browser storage alone is not a trusted payment record. Keep `RAZORPAY_KEY_SECRET` server-only. Never expose it through a `NEXT_PUBLIC_` variable.
+The backend must also protect paid media URLs or issue signed links after entitlement checks. Keep `RAZORPAY_KEY_SECRET` server-only; never expose it through a `NEXT_PUBLIC_` variable.

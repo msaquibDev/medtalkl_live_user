@@ -1,18 +1,17 @@
-export type VideoPaymentRequest = {
-  videoId: number;
-  videoTitle: string;
+export type PaidItemType = "faculty-video" | "conference";
+
+export type PaymentRequest = {
+  itemType: PaidItemType;
+  itemId: number;
+  title: string;
   amount: string;
   memberEmail: string;
 };
 
-export type VideoPaymentReceipt = {
-  provider: "demo" | "razorpay";
-  paymentId: string;
-};
+export type PaymentReceipt = { paymentId: string };
 
-export interface VideoPaymentProvider {
-  readonly mode: "demo" | "razorpay";
-  pay(request: VideoPaymentRequest): Promise<VideoPaymentReceipt>;
+export interface PaymentProvider {
+  pay(request: PaymentRequest): Promise<PaymentReceipt>;
 }
 
 type RazorpayOrder = {
@@ -52,14 +51,6 @@ declare global {
   }
 }
 
-/** Demo mode is the default until the server payment API is deployed. */
-export const demoVideoPaymentProvider: VideoPaymentProvider = {
-  mode: "demo",
-  async pay(request) {
-    return { provider: "demo", paymentId: `demo_${request.videoId}_${Date.now()}` };
-  },
-};
-
 function loadRazorpayCheckout(): Promise<void> {
   if (window.Razorpay) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -79,36 +70,41 @@ function loadRazorpayCheckout(): Promise<void> {
 }
 
 /**
- * Razorpay adapter contract:
- * POST /api/payments/orders creates the order on the server using the video ID.
- * POST /api/payments/verify checks the Checkout signature on the server and
- * records access in the member's learning library. Never trust client amounts.
+ * The separate backend must create the order and verify the Checkout signature.
+ * It must derive the item price and member identity on the server, then record
+ * the verified entitlement before returning { verified: true }.
  */
-export const razorpayVideoPaymentProvider: VideoPaymentProvider = {
-  mode: "razorpay",
+export const razorpayPaymentProvider: PaymentProvider = {
   async pay(request) {
     const orderResponse = await fetch("/api/payments/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ videoId: request.videoId }),
+      body: JSON.stringify({ itemType: request.itemType, itemId: request.itemId }),
     });
     if (!orderResponse.ok) throw new Error("Could not create a Razorpay order.");
     const order = await orderResponse.json() as RazorpayOrder;
-    if (!order.orderId || !order.keyId || !order.amount || !order.currency) throw new Error("The order response is incomplete.");
+    if (!order.orderId || !order.keyId || !order.amount || !order.currency) {
+      throw new Error("The Razorpay order response is incomplete.");
+    }
 
     await loadRazorpayCheckout();
     if (!window.Razorpay) throw new Error("Razorpay Checkout did not initialize.");
 
     return new Promise((resolve, reject) => {
       let settled = false;
-      const fail = (error: Error) => { if (!settled) { settled = true; reject(error); } };
+      const fail = (error: Error) => {
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+      };
       const checkout = new window.Razorpay!({
         key: order.keyId,
         order_id: order.orderId,
         amount: order.amount,
         currency: order.currency,
-        name: "Meditalk Live",
-        description: request.videoTitle,
+        name: "Medtalk.live",
+        description: request.title,
         prefill: { email: request.memberEmail },
         theme: { color: "#078271" },
         handler: async (response) => {
@@ -116,23 +112,30 @@ export const razorpayVideoPaymentProvider: VideoPaymentProvider = {
             const verification = await fetch("/api/payments/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ videoId: request.videoId, ...response }),
+              body: JSON.stringify({
+                itemType: request.itemType,
+                itemId: request.itemId,
+                ...response,
+              }),
             });
             const result = await verification.json() as { verified?: boolean };
-            if (!verification.ok || !result.verified) throw new Error("Razorpay could not verify this payment.");
+            if (!verification.ok || !result.verified) {
+              throw new Error("Razorpay could not verify this payment.");
+            }
             settled = true;
-            resolve({ provider: "razorpay", paymentId: response.razorpay_payment_id });
-          } catch (error) { fail(error instanceof Error ? error : new Error("Payment verification failed.")); }
+            resolve({ paymentId: response.razorpay_payment_id });
+          } catch (error) {
+            fail(error instanceof Error ? error : new Error("Payment verification failed."));
+          }
         },
         modal: { ondismiss: () => fail(new Error("Payment was cancelled.")) },
       });
-      checkout.on("payment.failed", (event) => fail(new Error(event.error?.description || "Payment failed.")));
+      checkout.on("payment.failed", (event) => {
+        fail(new Error(event.error?.description || "Payment failed."));
+      });
       checkout.open();
     });
   },
 };
 
-export const activeVideoPaymentProvider: VideoPaymentProvider =
-  process.env.NEXT_PUBLIC_RAZORPAY_ENABLED === "true"
-    ? razorpayVideoPaymentProvider
-    : demoVideoPaymentProvider;
+export const activePaymentProvider = razorpayPaymentProvider;
