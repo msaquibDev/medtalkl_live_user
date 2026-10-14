@@ -3,12 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type FormEvent,
-} from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -41,16 +36,26 @@ const MEMBER_KEY = "meditalk-member";
 const MEMBERS_KEY = "meditalk-members";
 
 type LearningEntitlements = { videoIds: number[]; conferenceIds: number[] };
-const EMPTY_ENTITLEMENTS: LearningEntitlements = { videoIds: [], conferenceIds: [] };
+const EMPTY_ENTITLEMENTS: LearningEntitlements = {
+  videoIds: [],
+  conferenceIds: [],
+};
 const DEMO_LEARNING_KEY = "medtalk-demo-learning";
-const demoLearningKey = (email?: string) => `${DEMO_LEARNING_KEY}:${email?.toLowerCase() || "guest"}`;
+const demoLearningKey = (email?: string) =>
+  `${DEMO_LEARNING_KEY}:${email?.toLowerCase() || "guest"}`;
 
 function readDemoLearning(email?: string): LearningEntitlements {
   try {
-    const saved = JSON.parse(localStorage.getItem(demoLearningKey(email)) || "null") as Partial<LearningEntitlements> | null;
+    const saved = JSON.parse(
+      localStorage.getItem(demoLearningKey(email)) || "null",
+    ) as Partial<LearningEntitlements> | null;
     return {
-      videoIds: Array.isArray(saved?.videoIds) ? saved.videoIds.filter(Number.isInteger) : [],
-      conferenceIds: Array.isArray(saved?.conferenceIds) ? saved.conferenceIds.filter(Number.isInteger) : [],
+      videoIds: Array.isArray(saved?.videoIds)
+        ? saved.videoIds.filter(Number.isInteger)
+        : [],
+      conferenceIds: Array.isArray(saved?.conferenceIds)
+        ? saved.conferenceIds.filter(Number.isInteger)
+        : [],
     };
   } catch {
     return EMPTY_ENTITLEMENTS;
@@ -58,7 +63,8 @@ function readDemoLearning(email?: string): LearningEntitlements {
 }
 
 function usePurchasedLearning(email?: string): LearningEntitlements {
-  const [entitlements, setEntitlements] = useState<LearningEntitlements>(EMPTY_ENTITLEMENTS);
+  const [entitlements, setEntitlements] =
+    useState<LearningEntitlements>(EMPTY_ENTITLEMENTS);
   useEffect(() => {
     if (!email) {
       setEntitlements(EMPTY_ENTITLEMENTS);
@@ -68,19 +74,38 @@ function usePurchasedLearning(email?: string): LearningEntitlements {
     const demo = readDemoLearning(email);
     fetch("/api/member/my-learning", { cache: "no-store" })
       .then(async (response) => {
-        if (!response.ok) throw new Error("Could not load your purchased items.");
-        return await response.json() as Partial<LearningEntitlements>;
+        if (!response.ok)
+          throw new Error("Could not load your purchased items.");
+        return (await response.json()) as Partial<LearningEntitlements>;
       })
       .then((result) => {
         if (current) {
           setEntitlements({
-            videoIds: Array.from(new Set([...demo.videoIds, ...(Array.isArray(result.videoIds) ? result.videoIds.filter(Number.isInteger) : [])])),
-            conferenceIds: Array.from(new Set([...demo.conferenceIds, ...(Array.isArray(result.conferenceIds) ? result.conferenceIds.filter(Number.isInteger) : [])])),
+            videoIds: Array.from(
+              new Set([
+                ...demo.videoIds,
+                ...(Array.isArray(result.videoIds)
+                  ? result.videoIds.filter(Number.isInteger)
+                  : []),
+              ]),
+            ),
+            conferenceIds: Array.from(
+              new Set([
+                ...demo.conferenceIds,
+                ...(Array.isArray(result.conferenceIds)
+                  ? result.conferenceIds.filter(Number.isInteger)
+                  : []),
+              ]),
+            ),
           });
         }
       })
-      .catch(() => { if (current) setEntitlements(demo); });
-    return () => { current = false; };
+      .catch(() => {
+        if (current) setEntitlements(demo);
+      });
+    return () => {
+      current = false;
+    };
   }, [email]);
   return entitlements;
 }
@@ -155,7 +180,9 @@ export function FacultyVideoDetail() {
                 <button
                   className="button button-primary"
                   type="button"
-                  onClick={() => router.push(`/member/checkout/video/${video.id}`)}
+                  onClick={() =>
+                    router.push(`/member/checkout/video/${video.id}`)
+                  }
                 >
                   Pay now <ArrowRight size={16} />
                 </button>
@@ -270,7 +297,9 @@ function featuredConferences(conferences: Conference[]) {
 }
 
 function allLearningConferences(conferences: Conference[]) {
-  const items = new Map(conferences.map((conference) => [conference.id, conference]));
+  const items = new Map(
+    conferences.map((conference) => [conference.id, conference]),
+  );
   for (const conference of featuredConferences(conferences)) {
     items.set(conference.id, conference);
   }
@@ -278,10 +307,34 @@ function allLearningConferences(conferences: Conference[]) {
 }
 
 const DUMMY_HALL_SESSIONS = [
-  { id: "hall-a-day-1", hall: "Hall A", day: "Day 1", title: "Opening Clinical Session", length: "42 min" },
-  { id: "hall-b-day-1", hall: "Hall B", day: "Day 1", title: "Expert Case Discussions", length: "36 min" },
-  { id: "hall-a-day-2", hall: "Hall A", day: "Day 2", title: "Advances in Surgical Practice", length: "51 min" },
-  { id: "hall-b-day-2", hall: "Hall B", day: "Day 2", title: "Research and Clinical Updates", length: "29 min" },
+  {
+    id: "hall-a-day-1",
+    hall: "Hall A",
+    day: "Day 1",
+    title: "Opening Clinical Session",
+    length: "42 min",
+  },
+  {
+    id: "hall-b-day-1",
+    hall: "Hall B",
+    day: "Day 1",
+    title: "Expert Case Discussions",
+    length: "36 min",
+  },
+  {
+    id: "hall-a-day-2",
+    hall: "Hall A",
+    day: "Day 2",
+    title: "Advances in Surgical Practice",
+    length: "51 min",
+  },
+  {
+    id: "hall-b-day-2",
+    hall: "Hall B",
+    day: "Day 2",
+    title: "Research and Clinical Updates",
+    length: "29 min",
+  },
 ];
 
 function featuredFacultyVideos(videos: FacultyVideo[], faculty: Faculty[]) {
@@ -767,8 +820,8 @@ export function MemberDashboard() {
   if (!member) return <div className="member-loading" />;
   const relevant = featuredConferences(conferences);
   const featuredVideos = featuredFacultyVideos(videos, faculty);
-  const learningConferences = allLearningConferences(conferences).filter((item) =>
-    purchased.conferenceIds.includes(item.id),
+  const learningConferences = allLearningConferences(conferences).filter(
+    (item) => purchased.conferenceIds.includes(item.id),
   );
   const learn = featuredVideos
     .filter((video) => purchased.videoIds.includes(video.id))
@@ -876,16 +929,28 @@ export function MemberDashboard() {
         />
         <div className="conference-grid">
           {learningConferences.map((conference) => (
-            <ConferenceCard key={conference.id} conference={conference} action="view" />
+            <ConferenceCard
+              key={conference.id}
+              conference={conference}
+              action="view"
+            />
           ))}
         </div>
         <div className="learning-grid">
           {learn.map((video) => (
-            <VideoCard key={video.id} video={video} faculty={videoFaculty(video, faculty)} compact purchased />
+            <VideoCard
+              key={video.id}
+              video={video}
+              faculty={videoFaculty(video, faculty)}
+              compact
+              purchased
+            />
           ))}
         </div>
         {learn.length === 0 && learningConferences.length === 0 && (
-          <div className="empty-note">Your learning library is ready for its first video or conference.</div>
+          <div className="empty-note">
+            Your learning library is ready for its first video or conference.
+          </div>
         )}
       </section>
       <section className="member-section">
@@ -991,15 +1056,22 @@ export function ConferenceDetail() {
     conferences.find((item) => item.id === Number(id)) ||
     featuredConferences(conferences).find((item) => item.id === Number(id));
   const purchased = usePurchasedLearning(member?.email);
-  const [date, time] = conference?.start.split("|").map((part) => part.trim()) || [];
+  const [date, time] =
+    conference?.start.split("|").map((part) => part.trim()) || [];
   const hasAccess = Boolean(
-    conference && (conference.type === "Free" || purchased.conferenceIds.includes(conference.id)),
+    conference &&
+    (conference.type === "Free" ||
+      purchased.conferenceIds.includes(conference.id)),
   );
 
   return (
     <MemberPageFrame
       title={conference?.name || "Conference Details"}
-      intro={conference ? `${conference.status} · ${date || "Date to be announced"}` : "Conference details"}
+      intro={
+        conference
+          ? `${conference.status} · ${date || "Date to be announced"}`
+          : "Conference details"
+      }
       active="conferences"
     >
       <Link
@@ -1010,81 +1082,123 @@ export function ConferenceDetail() {
       </Link>
       {conference ? (
         <>
-        <article className="conference-detail-card">
-          <div className="conference-detail-cover">
-            <Image
-              src={conference.banner || "/conference-placeholder.svg"}
-              alt={`${conference.name} cover`}
-              fill
-              sizes="(max-width: 700px) 92vw, 900px"
-              unoptimized
-            />
-            <span className={`conference-state ${conference.status.toLowerCase()}`}>
-              {conference.status === "Live" ? <i /> : null}
-              {conference.status}
-            </span>
-          </div>
-          <div className="conference-detail-copy">
-            <div className="card-tags">
-              <span>{conference.speciality || "Conference"}</span>
-              <span>{conference.type}</span>
+          <article className="conference-detail-card">
+            <div className="conference-detail-cover">
+              <Image
+                src={conference.banner || "/conference-placeholder.svg"}
+                alt={`${conference.name} cover`}
+                fill
+                sizes="(max-width: 700px) 92vw, 900px"
+                unoptimized
+              />
+              <span
+                className={`conference-state ${conference.status.toLowerCase()}`}
+              >
+                {conference.status === "Live" ? <i /> : null}
+                {conference.status}
+              </span>
             </div>
-            <h2>{conference.name}</h2>
-            <p><CalendarDays /> {date || "Date to be announced"}{time ? ` · ${time}` : ""}</p>
-            <p><MapPin /> {conference.venue || "Venue to be announced"}</p>
-            {conference.type === "Paid" && !hasAccess ? (
-              <div className="conference-paywall">
-                <strong>{conference.amount}</strong>
-                <span>Purchase access to join or watch this conference.</span>
-                <button className="button button-primary" type="button" onClick={() => router.push(`/member/checkout/conference/${conference.id}`)}>
-                  Pay now <ArrowRight size={16} />
-                </button>
+            <div className="conference-detail-copy">
+              <div className="card-tags">
+                <span>{conference.speciality || "Conference"}</span>
+                <span>{conference.type}</span>
               </div>
-            ) : (
-              <div className="conference-session-intro">
-                <Video />
-                <span>Choose a hall and day below to view its sessions.</span>
-              </div>
-            )}
-          </div>
-        </article>
-        <section className="conference-sessions">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">CONFERENCE PROGRAM</span>
-              <h2>Hall-wise videos</h2>
+              <h2>{conference.name}</h2>
+              <p>
+                <CalendarDays /> {date || "Date to be announced"}
+                {time ? ` · ${time}` : ""}
+              </p>
+              <p>
+                <MapPin /> {conference.venue || "Venue to be announced"}
+              </p>
+              {conference.type === "Paid" && !hasAccess ? (
+                <div className="conference-paywall">
+                  <strong>{conference.amount}</strong>
+                  <span>Purchase access to join or watch this conference.</span>
+                  <button
+                    className="button button-primary"
+                    type="button"
+                    onClick={() =>
+                      router.push(
+                        `/member/checkout/conference/${conference.id}`,
+                      )
+                    }
+                  >
+                    Pay now <ArrowRight size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="conference-session-intro">
+                  <Video />
+                  <span>Choose a hall and day below to view its sessions.</span>
+                </div>
+              )}
             </div>
-            <span className="conference-session-count">{DUMMY_HALL_SESSIONS.length} Sessions</span>
-          </div>
-          <div className="conference-session-grid">
-            {DUMMY_HALL_SESSIONS.map((session, index) => (
-              <article className={`conference-session-card tone-${index % 4}`} key={session.id}>
-                <div className="conference-session-cover">
-                  <span>{session.hall}</span>
-                  <b>{session.day}</b>
-                  <div className="conference-session-play"><Play size={22} fill="currentColor" /></div>
-                  <small>{session.length}</small>
-                </div>
-                <div className="conference-session-body">
-                  <span className="eyebrow">{conference.status === "Recorded" ? "RECORDED SESSION" : `${conference.status.toUpperCase()} SESSION`}</span>
-                  <h3>{session.title}</h3>
-                  <p>{session.hall} · {session.day}</p>
-                  {hasAccess ? (
-                    <Link className="button button-outline" href={`/member/conferences/${conference.id}/sessions/${session.id}`}>
-                      {conference.status === "Live" ? "Join Hall" : conference.status === "Recorded" ? "Watch Video" : "View Session"}
-                      <ArrowRight size={15} />
-                    </Link>
-                  ) : (
-                    <button className="button button-outline" type="button" onClick={() => router.push(`/member/checkout/conference/${conference.id}`)}>
-                      Pay to Watch <ArrowRight size={15} />
-                    </button>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
+          </article>
+          <section className="conference-sessions">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">CONFERENCE PROGRAM</span>
+                <h2>Hall-wise videos</h2>
+              </div>
+              <span className="conference-session-count">
+                {DUMMY_HALL_SESSIONS.length} Sessions
+              </span>
+            </div>
+            <div className="conference-session-grid">
+              {DUMMY_HALL_SESSIONS.map((session, index) => (
+                <article
+                  className={`conference-session-card tone-${index % 4}`}
+                  key={session.id}
+                >
+                  <div className="conference-session-cover">
+                    <span>{session.hall}</span>
+                    <b>{session.day}</b>
+                    <div className="conference-session-play">
+                      <Play size={22} fill="currentColor" />
+                    </div>
+                    <small>{session.length}</small>
+                  </div>
+                  <div className="conference-session-body">
+                    <span className="eyebrow">
+                      {conference.status === "Recorded"
+                        ? "RECORDED SESSION"
+                        : `${conference.status.toUpperCase()} SESSION`}
+                    </span>
+                    <h3>{session.title}</h3>
+                    <p>
+                      {session.hall} · {session.day}
+                    </p>
+                    {hasAccess ? (
+                      <Link
+                        className="button button-outline"
+                        href={`/member/conferences/${conference.id}/sessions/${session.id}`}
+                      >
+                        {conference.status === "Live"
+                          ? "Join Hall"
+                          : conference.status === "Recorded"
+                            ? "Watch Video"
+                            : "View Session"}
+                        <ArrowRight size={15} />
+                      </Link>
+                    ) : (
+                      <button
+                        className="button button-outline"
+                        type="button"
+                        onClick={() =>
+                          router.push(
+                            `/member/checkout/conference/${conference.id}`,
+                          )
+                        }
+                      >
+                        Pay to Watch <ArrowRight size={15} />
+                      </button>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         </>
       ) : (
         <div className="empty-note">This conference could not be found.</div>
@@ -1104,7 +1218,9 @@ export function ConferenceSessionDetail() {
   const session = DUMMY_HALL_SESSIONS.find((item) => item.id === sessionId);
   const purchased = usePurchasedLearning(member?.email);
   const hasAccess = Boolean(
-    conference && (conference.type === "Free" || purchased.conferenceIds.includes(conference.id)),
+    conference &&
+    (conference.type === "Free" ||
+      purchased.conferenceIds.includes(conference.id)),
   );
   const playableLink = Boolean(
     conference?.accessLink &&
@@ -1115,7 +1231,11 @@ export function ConferenceSessionDetail() {
   return (
     <MemberPageFrame
       title={session?.title || "Conference Video"}
-      intro={conference ? `${session?.hall || "Hall"} | ${session?.day || "Day"} | ${conference.name}` : "Watch a conference session."}
+      intro={
+        conference
+          ? `${session?.hall || "Hall"} | ${session?.day || "Day"} | ${conference.name}`
+          : "Watch a conference session."
+      }
       active="conferences"
     >
       <Link href={`/member/conferences/${id}`} className="back-to">
@@ -1126,19 +1246,31 @@ export function ConferenceSessionDetail() {
           <div className="video-detail-player">
             {!hasAccess ? (
               <div className="video-paywall">
-                <span className="play-button"><Play size={22} fill="currentColor" /></span>
+                <span className="play-button">
+                  <Play size={22} fill="currentColor" />
+                </span>
                 <h2>Unlock This Conference</h2>
                 <p>Purchase conference access to watch this hall and day.</p>
                 <strong>{conference.amount}</strong>
-                <button className="button button-primary" type="button" onClick={() => router.push(`/member/checkout/conference/${conference.id}`)}>
+                <button
+                  className="button button-primary"
+                  type="button"
+                  onClick={() =>
+                    router.push(`/member/checkout/conference/${conference.id}`)
+                  }
+                >
                   Pay now <ArrowRight size={16} />
                 </button>
               </div>
             ) : conference.status === "Upcoming" ? (
               <div className="video-paywall">
-                <span className="play-button"><Play size={22} fill="currentColor" /></span>
+                <span className="play-button">
+                  <Play size={22} fill="currentColor" />
+                </span>
                 <h2>Session Starts Soon</h2>
-                <p>This hall video will be available when the conference begins.</p>
+                <p>
+                  This hall video will be available when the conference begins.
+                </p>
               </div>
             ) : playableLink ? (
               <iframe
@@ -1149,28 +1281,44 @@ export function ConferenceSessionDetail() {
               />
             ) : (
               <div className="video-paywall">
-                <span className="play-button"><Play size={22} fill="currentColor" /></span>
+                <span className="play-button">
+                  <Play size={22} fill="currentColor" />
+                </span>
                 <h2>Video Coming Soon</h2>
-                <p>This demo session is ready for its hall-specific video link from the admin API.</p>
+                <p>
+                  This demo session is ready for its hall-specific video link
+                  from the admin API.
+                </p>
               </div>
             )}
           </div>
           <div className="video-detail-copy">
             <div>
               <span className="price-tag free">{session.hall}</span>
-              <span className="eyebrow">{session.day} | {conference.status}</span>
+              <span className="eyebrow">
+                {session.day} | {conference.status}
+              </span>
             </div>
             <h1>{session.title}</h1>
-            <p>{conference.name} | {conference.venue}</p>
+            <p>
+              {conference.name} | {conference.venue}
+            </p>
             {hasAccess && playableLink && conference.status !== "Upcoming" && (
-              <a className="button button-outline" href={conference.accessLink} target="_blank" rel="noreferrer">
+              <a
+                className="button button-outline"
+                href={conference.accessLink}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Open Video in New Tab <ArrowRight size={15} />
               </a>
             )}
           </div>
         </article>
       ) : (
-        <div className="empty-note">This conference session could not be found.</div>
+        <div className="empty-note">
+          This conference session could not be found.
+        </div>
       )}
     </MemberPageFrame>
   );
@@ -1238,7 +1386,7 @@ export function FacultyDetail() {
       active="faculty"
     >
       <Link href="/member/faculty" className="back-to">
-        ← All faculty
+        All faculty
       </Link>
       {person && (
         <>
@@ -1265,7 +1413,12 @@ export function FacultyDetail() {
             <SectionHeading title="Faculty videos" />
             <div className="learning-grid">
               {list.map((video) => (
-                <VideoCard key={video.id} video={video} faculty={person} purchased={purchased.videoIds.includes(video.id)} />
+                <VideoCard
+                  key={video.id}
+                  video={video}
+                  faculty={person}
+                  purchased={purchased.videoIds.includes(video.id)}
+                />
               ))}
             </div>
             {list.length === 0 && (
@@ -1314,12 +1467,18 @@ export function DemoCheckoutPage() {
   const { conferences, faculty, videos } = useCatalog();
   const { member } = useMemberGuard();
   const itemId = Number(id);
-  const video = type === "video"
-    ? videos.find((entry) => entry.id === itemId) || featuredFacultyVideos(videos, faculty).find((entry) => entry.id === itemId)
-    : undefined;
-  const conference = type === "conference"
-    ? conferences.find((entry) => entry.id === itemId) || featuredConferences(conferences).find((entry) => entry.id === itemId)
-    : undefined;
+  const video =
+    type === "video"
+      ? videos.find((entry) => entry.id === itemId) ||
+        featuredFacultyVideos(videos, faculty).find(
+          (entry) => entry.id === itemId,
+        )
+      : undefined;
+  const conference =
+    type === "conference"
+      ? conferences.find((entry) => entry.id === itemId) ||
+        featuredConferences(conferences).find((entry) => entry.id === itemId)
+      : undefined;
   const title = video?.title || conference?.name;
   const amount = video?.amount || conference?.amount;
   const speaker = video ? videoFaculty(video, faculty) : undefined;
@@ -1328,16 +1487,41 @@ export function DemoCheckoutPage() {
     if (!member || !title || !amount) return;
     const current = readDemoLearning(member.email);
     const next: LearningEntitlements = video
-      ? { ...current, videoIds: Array.from(new Set([...current.videoIds, video.id])) }
-      : { ...current, conferenceIds: Array.from(new Set([...current.conferenceIds, conference!.id])) };
+      ? {
+          ...current,
+          videoIds: Array.from(new Set([...current.videoIds, video.id])),
+        }
+      : {
+          ...current,
+          conferenceIds: Array.from(
+            new Set([...current.conferenceIds, conference!.id]),
+          ),
+        };
     localStorage.setItem(demoLearningKey(member.email), JSON.stringify(next));
-    router.push(video ? `/member/videos/${video.id}` : `/member/conferences/${conference!.id}`);
+    router.push(
+      video
+        ? `/member/videos/${video.id}`
+        : `/member/conferences/${conference!.id}`,
+    );
   }
 
   if (!member) return <div className="member-loading" />;
   return (
-    <MemberPageFrame title="Checkout" intro="Review your item before continuing." active="learning">
-      <Link href={speaker ? `/member/faculty/${speaker.id}` : video ? "/member/videos" : "/member/conferences"} className="back-to">
+    <MemberPageFrame
+      title="Checkout"
+      intro="Review your item before continuing."
+      active="learning"
+    >
+      <Link
+        href={
+          speaker
+            ? `/member/faculty/${speaker.id}`
+            : video
+              ? "/member/videos"
+              : "/member/conferences"
+        }
+        className="back-to"
+      >
         ← Back
       </Link>
       {title && amount && (video || conference) ? (
@@ -1351,16 +1535,31 @@ export function DemoCheckoutPage() {
             <div>
               <span>{video ? "Faculty Video" : "Conference"}</span>
               <h3>{title}</h3>
-              {speaker && <p>{speaker.name} · {video?.speciality}</p>}
-              {conference && <p>{conference.status} · {conference.venue}</p>}
+              {speaker && (
+                <p>
+                  {speaker.name} · {video?.speciality}
+                </p>
+              )}
+              {conference && (
+                <p>
+                  {conference.status} · {conference.venue}
+                </p>
+              )}
             </div>
             <strong>{amount}</strong>
           </div>
           <div className="demo-checkout-note">
             <strong>Demo payment mode</strong>
-            <span>Completing this step unlocks the item and adds it to My Learning. A payment API can replace this flow later.</span>
+            <span>
+              Completing this step unlocks the item and adds it to My Learning.
+              A payment API can replace this flow later.
+            </span>
           </div>
-          <button className="button button-primary demo-checkout-submit" type="button" onClick={simulatePayment}>
+          <button
+            className="button button-primary demo-checkout-submit"
+            type="button"
+            onClick={simulatePayment}
+          >
             Complete Demo Payment <ArrowRight size={16} />
           </button>
         </section>
@@ -1381,7 +1580,8 @@ export function LearningPage() {
   const learningConferences = allLearningConferences(conferences).filter(
     (conference) => purchased.conferenceIds.includes(conference.id),
   );
-  const hasLearning = learningVideos.length > 0 || learningConferences.length > 0;
+  const hasLearning =
+    learningVideos.length > 0 || learningConferences.length > 0;
   return (
     <MemberPageFrame
       title="My learning"
@@ -1393,7 +1593,11 @@ export function LearningPage() {
           <SectionHeading title="Purchased Conferences" />
           <div className="conference-grid">
             {learningConferences.map((conference) => (
-              <ConferenceCard key={conference.id} conference={conference} action="view" />
+              <ConferenceCard
+                key={conference.id}
+                conference={conference}
+                action="view"
+              />
             ))}
           </div>
         </section>
@@ -1403,7 +1607,12 @@ export function LearningPage() {
           <SectionHeading title="Purchased Faculty Videos" />
           <div className="learning-grid">
             {learningVideos.map((video) => (
-              <VideoCard key={video.id} video={video} faculty={videoFaculty(video, faculty)} purchased />
+              <VideoCard
+                key={video.id}
+                video={video}
+                faculty={videoFaculty(video, faculty)}
+                purchased
+              />
             ))}
           </div>
         </section>
