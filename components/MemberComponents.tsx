@@ -135,9 +135,7 @@ export function ConferenceCard({
         </div>
         <a
           className={`button conference-cta ${action === "view" ? "button-outline" : "button-primary"}`}
-          href={action === "register" ? "/register" : action === "dashboard" && conference.type === "Paid" && !purchased ? `/member/checkout/conference/${conference.id}` : conference.type === "Paid" || !conference.accessLink ? `/member/conferences/${conference.id}` : conference.accessLink}
-          target={action === "register" || conference.type === "Paid" || !conference.accessLink ? undefined : "_blank"}
-          rel={conference.accessLink ? "noreferrer" : undefined}
+          href={action === "register" ? "/register" : action === "dashboard" && conference.type === "Paid" && !purchased ? `/member/checkout/conference/${conference.id}` : `/member/conferences/${conference.id}`}
         >
           {buttonText}
           {conference.status === "Live" && action === "dashboard" ? <Play size={14} fill="currentColor" /> : <ArrowRight size={15} />}

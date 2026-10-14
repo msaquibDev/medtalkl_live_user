@@ -118,7 +118,7 @@ export function FacultyVideoDetail() {
         href={speaker ? `/member/faculty/${speaker.id}` : "/member/videos"}
         className="back-to"
       >
-        ← Back to Faculty Videos
+        Back to Faculty Videos
       </Link>
       {video && speaker ? (
         <article className="video-detail-card">
@@ -276,6 +276,13 @@ function allLearningConferences(conferences: Conference[]) {
   }
   return Array.from(items.values());
 }
+
+const DUMMY_HALL_SESSIONS = [
+  { id: "hall-a-day-1", hall: "Hall A", day: "Day 1", title: "Opening Clinical Session", length: "42 min" },
+  { id: "hall-b-day-1", hall: "Hall B", day: "Day 1", title: "Expert Case Discussions", length: "36 min" },
+  { id: "hall-a-day-2", hall: "Hall A", day: "Day 2", title: "Advances in Surgical Practice", length: "51 min" },
+  { id: "hall-b-day-2", hall: "Hall B", day: "Day 2", title: "Research and Clinical Updates", length: "29 min" },
+];
 
 function featuredFacultyVideos(videos: FacultyVideo[], faculty: Faculty[]) {
   const list = videos.slice(0, 4);
@@ -999,9 +1006,10 @@ export function ConferenceDetail() {
         href={`/member/conferences?status=${conference?.status || "Live"}`}
         className="back-to"
       >
-        ← Back to Conferences
+        Back to Conferences
       </Link>
       {conference ? (
+        <>
         <article className="conference-detail-card">
           <div className="conference-detail-cover">
             <Image
@@ -1032,26 +1040,137 @@ export function ConferenceDetail() {
                   Pay now <ArrowRight size={16} />
                 </button>
               </div>
-            ) : conference.accessLink ? (
-              <a className="button button-primary" href={conference.accessLink} target="_blank" rel="noreferrer">
-                {conference.status === "Recorded" ? "Watch Recording" : conference.status === "Live" ? "Join Conference" : "View Conference"}
-                <ArrowRight size={16} />
-              </a>
             ) : (
-              <div className="conference-link-pending" role="status">
+              <div className="conference-session-intro">
                 <Video />
-                <div>
-                  <strong>
-                    {conference.status === "Live" ? "The join link is not available yet" : "The video link is not available yet"}
-                  </strong>
-                  <span>The conference organizer has not published an access link for this session.</span>
-                </div>
+                <span>Choose a hall and day below to view its sessions.</span>
               </div>
             )}
           </div>
         </article>
+        <section className="conference-sessions">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">CONFERENCE PROGRAM</span>
+              <h2>Hall-wise videos</h2>
+            </div>
+            <span className="conference-session-count">{DUMMY_HALL_SESSIONS.length} Sessions</span>
+          </div>
+          <div className="conference-session-grid">
+            {DUMMY_HALL_SESSIONS.map((session, index) => (
+              <article className={`conference-session-card tone-${index % 4}`} key={session.id}>
+                <div className="conference-session-cover">
+                  <span>{session.hall}</span>
+                  <b>{session.day}</b>
+                  <div className="conference-session-play"><Play size={22} fill="currentColor" /></div>
+                  <small>{session.length}</small>
+                </div>
+                <div className="conference-session-body">
+                  <span className="eyebrow">{conference.status === "Recorded" ? "RECORDED SESSION" : `${conference.status.toUpperCase()} SESSION`}</span>
+                  <h3>{session.title}</h3>
+                  <p>{session.hall} · {session.day}</p>
+                  {hasAccess ? (
+                    <Link className="button button-outline" href={`/member/conferences/${conference.id}/sessions/${session.id}`}>
+                      {conference.status === "Live" ? "Join Hall" : conference.status === "Recorded" ? "Watch Video" : "View Session"}
+                      <ArrowRight size={15} />
+                    </Link>
+                  ) : (
+                    <button className="button button-outline" type="button" onClick={() => router.push(`/member/checkout/conference/${conference.id}`)}>
+                      Pay to Watch <ArrowRight size={15} />
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        </>
       ) : (
         <div className="empty-note">This conference could not be found.</div>
+      )}
+    </MemberPageFrame>
+  );
+}
+
+export function ConferenceSessionDetail() {
+  const { id, sessionId } = useParams<{ id: string; sessionId: string }>();
+  const router = useRouter();
+  const { conferences } = useCatalog();
+  const { member } = useMemberGuard();
+  const conference =
+    conferences.find((item) => item.id === Number(id)) ||
+    featuredConferences(conferences).find((item) => item.id === Number(id));
+  const session = DUMMY_HALL_SESSIONS.find((item) => item.id === sessionId);
+  const purchased = usePurchasedLearning(member?.email);
+  const hasAccess = Boolean(
+    conference && (conference.type === "Free" || purchased.conferenceIds.includes(conference.id)),
+  );
+  const playableLink = Boolean(
+    conference?.accessLink &&
+    conference.accessLink !== "#" &&
+    !conference.accessLink.includes("video.meditalk.in/"),
+  );
+
+  return (
+    <MemberPageFrame
+      title={session?.title || "Conference Video"}
+      intro={conference ? `${session?.hall || "Hall"} | ${session?.day || "Day"} | ${conference.name}` : "Watch a conference session."}
+      active="conferences"
+    >
+      <Link href={`/member/conferences/${id}`} className="back-to">
+        Back to {conference?.name || "Conference"}
+      </Link>
+      {conference && session ? (
+        <article className="video-detail-card">
+          <div className="video-detail-player">
+            {!hasAccess ? (
+              <div className="video-paywall">
+                <span className="play-button"><Play size={22} fill="currentColor" /></span>
+                <h2>Unlock This Conference</h2>
+                <p>Purchase conference access to watch this hall and day.</p>
+                <strong>{conference.amount}</strong>
+                <button className="button button-primary" type="button" onClick={() => router.push(`/member/checkout/conference/${conference.id}`)}>
+                  Pay now <ArrowRight size={16} />
+                </button>
+              </div>
+            ) : conference.status === "Upcoming" ? (
+              <div className="video-paywall">
+                <span className="play-button"><Play size={22} fill="currentColor" /></span>
+                <h2>Session Starts Soon</h2>
+                <p>This hall video will be available when the conference begins.</p>
+              </div>
+            ) : playableLink ? (
+              <iframe
+                src={videoEmbedUrl(conference.accessLink!)}
+                title={`${session.title} - ${session.hall}, ${session.day}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : (
+              <div className="video-paywall">
+                <span className="play-button"><Play size={22} fill="currentColor" /></span>
+                <h2>Video Coming Soon</h2>
+                <p>This demo session is ready for its hall-specific video link from the admin API.</p>
+              </div>
+            )}
+          </div>
+          <div className="video-detail-copy">
+            <div>
+              <span className="price-tag free">{session.hall}</span>
+              <span className="eyebrow">{session.day} | {conference.status}</span>
+            </div>
+            <h1>{session.title}</h1>
+            <p>{conference.name} | {conference.venue}</p>
+            {hasAccess && playableLink && conference.status !== "Upcoming" && (
+              <a className="button button-outline" href={conference.accessLink} target="_blank" rel="noreferrer">
+                Open Video in New Tab <ArrowRight size={15} />
+              </a>
+            )}
+          </div>
+        </article>
+      ) : (
+        <div className="empty-note">This conference session could not be found.</div>
       )}
     </MemberPageFrame>
   );
