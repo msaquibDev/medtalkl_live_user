@@ -5836,17 +5836,25 @@ body {
 .promo-card { display: flex; flex-direction: column; }
 .promo-card .conference-card-body { display: flex; flex: 1; flex-direction: column; }
 .promo-card-art {
-  position: relative; display: block; height: 164px; overflow: hidden;
-  padding: 0; background: #fff; text-decoration: none;
+  position: relative; display: flex; height: 164px; overflow: hidden; flex-direction: column;
+  justify-content: center; padding: 22px; color: #fff; text-decoration: none;
+  background: radial-gradient(circle at 78% 22%, #ffffff55 0 2px, transparent 3px), linear-gradient(135deg, #173e69, #6488b8);
 }
-.promo-card-art img { object-fit: cover; }
+.promo-card.ampicon .promo-card-art { background: radial-gradient(circle at 78% 20%, #ffda82 0 10%, transparent 11%), linear-gradient(135deg, #087e76, #47b8b0 52%, #f2be66); }
+.promo-card.transmedcon .promo-card-art { background: radial-gradient(ellipse at 80% 0%, #f5c374 0 12%, transparent 13%), linear-gradient(135deg, #762e43, #da574b 55%, #e8a85f); }
+.promo-card.isnacc .promo-card-art { background: radial-gradient(circle at 78% 20%, #f3d281 0 9%, transparent 10%), linear-gradient(135deg, #194f56, #4e9992 55%, #c7a45d); }
+.promo-card.nsicon .promo-card-art { background: radial-gradient(circle at 78% 20%, #a9d2ed 0 11%, transparent 12%), linear-gradient(135deg, #182e51, #4d5c91 56%, #8ba8cb); }
 .promo-state { z-index: 2; background: transparent; box-shadow: none; text-shadow: 0 1px 3px #fff; }
+.promo-art-kicker { position: relative; z-index: 1; font-size: 9px; font-weight: 800; letter-spacing: .16em; opacity: .85; }
+.promo-card-art strong { position: relative; z-index: 1; margin-top: 7px; font-size: 27px; line-height: 1; letter-spacing: -.04em; }
+.promo-art-year { position: relative; z-index: 1; font-size: 29px; font-weight: 900; line-height: 1.05; }
+.promo-art-place { position: relative; z-index: 1; margin-top: 8px; font-size: 11px; }
 .promo-venue-line { min-width: 0; align-items: center; }
 .promo-venue-line span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .promo-card .conference-cta { margin-top: auto; }
 .promo-detail-page { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 76px; }
 .promo-back-link { display: inline-block; margin-bottom: 18px; color: #087e71; font-weight: 700; text-decoration: none; }
-.promo-detail-hero { position: relative; height: clamp(260px, 52vw, 640px); overflow: hidden; padding: 0; border-radius: 24px; background: #fff; }
+.promo-detail-hero { position: relative; width: 100%; aspect-ratio: 1878 / 517; height: auto; overflow: hidden; padding: 0; border-radius: 24px; background: #fff; }
 .promo-detail-hero img { object-fit: contain; }
 .promo-schedule li, .promo-venue { display: flex; align-items: flex-start; gap: 11px; line-height: 1.5; }
 .promo-schedule svg, .promo-venue svg { flex: 0 0 auto; width: 19px; }
@@ -5854,6 +5862,8 @@ body {
 .promo-detail-content h2 { margin: 10px 0; color: #1b3d46; font-size: 30px; }
 .promo-detail-content h3 { margin: 28px 0 12px; color: #244b4b; font-size: 18px; }
 .promo-detail-content p { color: #647b7c; font-size: 16px; line-height: 1.65; }
+.promo-detail-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0 8px; }
+.promo-detail-tags > span:first-child { padding: 6px 10px; border-radius: 20px; background: #f0f5f7; color: #5c7882; font-size: 12px; }
 .promo-schedule { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; color: #486566; }
 .promo-schedule svg, .promo-venue svg { color: #078271; }
 .promo-join-card { align-self: start; padding: 30px; border: 1px solid #dfebe7; border-radius: 20px; background: linear-gradient(155deg, #f2faf6, #fff 72%); box-shadow: 0 16px 38px #193b3310; }
@@ -5864,7 +5874,7 @@ body {
 .promo-not-found { padding: 80px 0; text-align: center; }
 @media (max-width: 700px) {
   .promo-detail-page { width: min(100% - 28px, 1180px); padding-top: 22px; }
-  .promo-detail-hero { height: clamp(220px, 62vw, 420px); border-radius: 18px; }
+  .promo-detail-hero { border-radius: 18px; }
   .promo-detail-content { grid-template-columns: 1fr; gap: 25px; padding: 34px 2px 0; }
   .promo-join-card { padding: 24px; }
 }

@@ -570,8 +570,11 @@ function PromotionalConferenceCard({ conference }: { conference: (typeof promoti
   return (
     <article className={`conference-card promo-card ${conference.theme}`}>
       <Link className="promo-card-art" href={`/conferences/${conference.slug}`} aria-label={`View ${conference.name}`}>
-        <Image src={conference.image} alt={`${conference.name} poster`} fill sizes="(max-width: 700px) 92vw, 360px" unoptimized />
         <span className="conference-state upcoming promo-state">Upcoming</span>
+        <span className="promo-art-kicker">UPCOMING CONFERENCE</span>
+        <strong>{conference.shortName}</strong>
+        <span className="promo-art-year">{conference.slug.includes("2027") ? "2027" : "2026"}</span>
+        <span className="promo-art-place">{conference.venue.split(",").slice(-1)[0].trim()}</span>
       </Link>
       <div className="conference-card-body">
         <div className="conference-title-row"><h3>{conference.name}</h3></div>
@@ -579,7 +582,7 @@ function PromotionalConferenceCard({ conference }: { conference: (typeof promoti
         <p className="info-line"><Clock3 />10:00 AM</p>
         <p className="info-line promo-venue-line"><MapPin /><span title={conference.venue}>{conference.venue}</span></p>
         <span className="agenda-link is-disabled" aria-disabled="true"><ArrowDownToLine />Download Agenda</span>
-        <div className="card-tags"><span>{conference.category}</span></div>
+        <div className="card-tags"><span>{conference.category}</span><span>{conference.type}</span></div>
         <Link className="button button-primary conference-cta" href={`/conferences/${conference.slug}`}>Register <ArrowRight size={15} /></Link>
       </div>
     </article>
@@ -598,13 +601,17 @@ export function PromotionalConferencePage() {
       <main className="promo-detail-page">
         <Link href="/#upcoming" className="promo-back-link">← Upcoming conferences</Link>
         <section className="promo-detail-hero">
-          <Image src={conference.image} alt={`${conference.name} poster`} fill priority sizes="(max-width: 900px) 100vw, 1180px" unoptimized />
+          <Image src="/common-internal.png" alt={`${conference.name} conference information`} fill priority sizes="(max-width: 900px) 100vw, 1180px" unoptimized />
         </section>
         <section className="promo-detail-content">
           <div>
             <span className="eyebrow">ABOUT THE CONFERENCE</span>
             <h2>{conference.name}</h2>
             <p>{conference.subtitle}</p>
+            <div className="promo-detail-tags">
+              <span>{conference.category}</span>
+              <span className={`price-tag ${conference.type.toLowerCase()}`}>{conference.type}</span>
+            </div>
             <h3>Conference schedule</h3>
             <ul className="promo-schedule">{conference.schedule.map((item) => <li key={item}><CalendarDays />{item}</li>)}</ul>
             <h3>Venue</h3>
