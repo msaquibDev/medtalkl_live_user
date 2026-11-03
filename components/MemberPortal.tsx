@@ -309,13 +309,25 @@ function allLearningConferences(conferences: Conference[]) {
   return Array.from(items.values());
 }
 
-const DUMMY_HALL_SESSIONS = [
+const DUMMY_HALL_SESSIONS: {
+  id: string;
+  hall: string;
+  day: string;
+  title: string;
+  length: string;
+  type?: string;
+  time?: string;
+  videoUrl?: string;
+}[] = [
   {
     id: "hall-a-day-1",
     hall: "Hall A",
     day: "Day 1",
-    title: "Opening Clinical Session",
-    length: "42 min",
+    title: "Meril Mizzo Endo 4000 Surgical Robotic Case Series",
+    type: "Presentation",
+    time: "01:00 PM – 01:30 PM",
+    length: "30 min",
+    videoUrl: "https://usi-video.s3.eu-west-3.amazonaws.com/usicon2026/Hall%20B/Day1/ROBOTIC%20SURGERY%20-%20MIZZO/2026-01-29%2014-05-03.mp4",
   },
   {
     id: "hall-b-day-1",
@@ -1200,14 +1212,10 @@ export function ConferenceDetail() {
                   </div>
                   <div className="conference-session-body">
                     <span className="eyebrow">
-                      {conference.status === "Recorded"
-                        ? "RECORDED SESSION"
-                        : `${conference.status.toUpperCase()} SESSION`}
+                      {session.type || `${conference.status.toUpperCase()} SESSION`}
                     </span>
                     <h3>{session.title}</h3>
-                    <p>
-                      {session.hall} · {session.day}
-                    </p>
+                    <p>{session.time || `${session.hall} | ${session.day}`}</p>
                     {hasAccess ? (
                       <Link
                         className="button button-outline"
@@ -1262,6 +1270,7 @@ export function ConferenceSessionDetail() {
       purchased.conferenceIds.includes(conference.id)),
   );
   const playableLink = Boolean(
+    session?.videoUrl ||
     conference?.accessLink &&
     conference.accessLink !== "#" &&
     !conference.accessLink.includes("video.meditalk.in/"),
@@ -1270,7 +1279,7 @@ export function ConferenceSessionDetail() {
     ? [
         conference.name,
         conference.start,
-        ...DUMMY_HALL_SESSIONS.map((item) => `${item.hall} | ${item.day} | ${item.title} (${item.length})`),
+        ...DUMMY_HALL_SESSIONS.map((item) => `${item.hall} | ${item.day}${item.time ? ` | ${item.time}` : ""} | ${item.title} (${item.length})`),
         `Venue: ${conference.venue}`,
       ].join("\n")
     : "";
@@ -1319,6 +1328,14 @@ export function ConferenceSessionDetail() {
                   This hall video will be available when the conference begins.
                 </p>
               </div>
+            ) : session.videoUrl ? (
+              <video
+                src={session.videoUrl}
+                controls
+                playsInline
+                preload="metadata"
+                aria-label={`${session.title} video`}
+              />
             ) : playableLink ? (
               <iframe
                 src={videoEmbedUrl(conference.accessLink!)}
@@ -1346,6 +1363,8 @@ export function ConferenceSessionDetail() {
                 {session.day} | {conference.status}
               </span>
             </div>
+            {session.type && <p>{session.type}</p>}
+            {session.time && <p><Clock3 /> {session.time}</p>}
             <div className="session-action-buttons">
               <a
                 className="button button-outline"
@@ -1363,7 +1382,7 @@ export function ConferenceSessionDetail() {
             {hasAccess && playableLink && conference.status !== "Upcoming" && (
               <a
                 className="button button-outline"
-                href={conference.accessLink}
+                href={session.videoUrl || conference.accessLink}
                 target="_blank"
                 rel="noreferrer"
               >
