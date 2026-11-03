@@ -570,11 +570,7 @@ function PromotionalConferenceCard({ conference }: { conference: (typeof promoti
   return (
     <article className={`conference-card promo-card ${conference.theme}`}>
       <Link className="promo-card-art" href={`/conferences/${conference.slug}`} aria-label={`View ${conference.name}`}>
-        <span className="conference-state upcoming promo-state">Upcoming</span>
-        <span className="promo-art-kicker">UPCOMING CONFERENCE</span>
-        <strong>{conference.shortName}</strong>
-        <span className="promo-art-year">{conference.slug.includes("2027") ? "2027" : "2026"}</span>
-        <span className="promo-art-place">{conference.venue.split(",").slice(-1)[0].trim()}</span>
+        <Image className="promo-card-poster" src={conference.image} alt={`${conference.name} poster`} fill sizes="(max-width: 700px) 92vw, 360px" unoptimized />
       </Link>
       <div className="conference-card-body">
         <div className="conference-title-row"><h3>{conference.name}</h3></div>
@@ -621,6 +617,7 @@ export function PromotionalConferencePage() {
             <span className="eyebrow">BE PART OF IT</span>
             <h2>Join the conversation.</h2>
             <p>Create your Meditalk Live account to continue with conference registration.</p>
+            <strong className="promo-amount">₹ 999</strong>
             <button className="button button-primary promo-join-button" onClick={() => router.push("/register")}>Join now <ArrowRight size={19} /></button>
             <span className="promo-join-note">Registration details will be shared during sign-up.</span>
           </aside>
