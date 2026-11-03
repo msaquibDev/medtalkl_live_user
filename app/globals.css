@@ -5865,12 +5865,18 @@ body {
 .promo-amount { display: block; margin: -5px 0 20px; color: #1d4a46; font-size: 28px; }
 .promo-join-button { display: flex; width: 100%; min-height: 60px; justify-content: center; gap: 12px; font-size: 18px; }
 .promo-join-note { display: block; margin-top: 13px; color: #7b9090; font-size: 12px; line-height: 1.5; }
+.promo-agenda-action { margin-top: 18px; }
+.session-action-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+.session-action-buttons .button { min-height: 42px; }
+.session-action-buttons svg, .promo-agenda-action svg { margin-right: 7px; }
 .promo-not-found { padding: 80px 0; text-align: center; }
 @media (max-width: 700px) {
   .promo-detail-page { width: min(100% - 28px, 1180px); padding-top: 22px; }
   .promo-detail-hero { border-radius: 18px; }
   .promo-detail-content { grid-template-columns: 1fr; gap: 25px; padding: 34px 2px 0; }
   .promo-join-card { padding: 24px; }
+  .session-action-buttons { align-items: stretch; }
+  .session-action-buttons .button { flex: 1 1 100%; }
 }
 .conference-detail-cover {
   position: relative;

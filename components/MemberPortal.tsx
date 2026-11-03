@@ -592,6 +592,11 @@ export function PromotionalConferencePage() {
   if (!conference) {
     return <SiteLayout><main className="promo-detail-page"><div className="promo-not-found"><h1>Conference not found</h1><Link className="button button-primary" href="/">Back to home</Link></div></main></SiteLayout>;
   }
+  const agendaText = [
+    conference.name,
+    ...conference.schedule,
+    `Venue: ${conference.venue}`,
+  ].join("\n");
   return (
     <SiteLayout>
       <main className="promo-detail-page">
@@ -610,6 +615,11 @@ export function PromotionalConferencePage() {
             </div>
             <h3>Conference schedule</h3>
             <ul className="promo-schedule">{conference.schedule.map((item) => <li key={item}><CalendarDays />{item}</li>)}</ul>
+            <div className="promo-agenda-action">
+              <a className="button button-primary" href={`data:text/plain;charset=utf-8,${encodeURIComponent(agendaText)}`} download={`${conference.slug}-agenda.txt`}>
+                <ArrowDownToLine size={16} /> Download Agenda
+              </a>
+            </div>
             <h3>Venue</h3>
             <p className="promo-venue"><MapPin />{conference.venue}</p>
           </div>
@@ -1256,6 +1266,14 @@ export function ConferenceSessionDetail() {
     conference.accessLink !== "#" &&
     !conference.accessLink.includes("video.meditalk.in/"),
   );
+  const agendaText = conference
+    ? [
+        conference.name,
+        conference.start,
+        ...DUMMY_HALL_SESSIONS.map((item) => `${item.hall} | ${item.day} | ${item.title} (${item.length})`),
+        `Venue: ${conference.venue}`,
+      ].join("\n")
+    : "";
 
   return (
     <MemberPageFrame
@@ -1328,7 +1346,17 @@ export function ConferenceSessionDetail() {
                 {session.day} | {conference.status}
               </span>
             </div>
-            <h1>{session.title}</h1>
+            <div className="session-action-buttons">
+              <a
+                className="button button-outline"
+                href={conference.agenda || `data:text/plain;charset=utf-8,${encodeURIComponent(agendaText)}`}
+                download={`${conference.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-agenda.txt`}
+              >
+                <ArrowDownToLine size={16} /> Download Agenda
+              </a>
+              <button className="button button-outline" type="button">Ask a Question</button>
+              <button className="button button-outline" type="button">Translate via AI</button>
+            </div>
             <p>
               {conference.name} | {conference.venue}
             </p>
