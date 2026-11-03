@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
+  ArrowDownToLine,
   ArrowRight,
   BookOpen,
   CalendarDays,
   Check,
+  Clock3,
   MapPin,
   Play,
   Search,
@@ -22,6 +24,7 @@ import type {
   FacultyVideo,
   Member,
 } from "@/lib/catalog/model";
+import { promotionalConferences } from "@/lib/promotionalConferences";
 import { FormDropdown } from "@/components/FormDropdown";
 import { SiteLayout } from "@/components/MemberSiteLayout";
 import {
@@ -397,16 +400,6 @@ export function PublicHome() {
       "Uro-Oncology Tumor Board",
     ],
   );
-  const upcoming = padConferences(
-    conferences.filter((item) => item.status === "Upcoming"),
-    "Upcoming",
-    [
-      "Urology Update 2026",
-      "Endourology Masterclass",
-      "Precision Oncology Summit",
-      "Advances in Andrology",
-    ],
-  );
   const recorded = conferences
     .filter((item) => item.status === "Recorded")
     .slice(0, 4);
@@ -497,16 +490,15 @@ export function PublicHome() {
             </div>
           </div>
         </section>
-        <section className="content-section section-tinted">
+        <section className="content-section section-tinted" id="upcoming">
           <div className="section-wrap">
             <SectionHeading
               kicker="SAVE YOUR SEAT"
               title="Upcoming conferences"
-              href="/login"
             />
             <div className="conference-grid">
-              {upcoming.map((item) => (
-                <ConferenceCard key={item.id} conference={item} />
+              {promotionalConferences.map((conference) => (
+                <PromotionalConferenceCard key={conference.slug} conference={conference} />
               ))}
             </div>
           </div>
@@ -574,62 +566,128 @@ export function PublicHome() {
   );
 }
 
+function PromotionalConferenceCard({ conference }: { conference: (typeof promotionalConferences)[number] }) {
+  return (
+    <article className={`conference-card promo-card ${conference.theme}`}>
+      <Link className="promo-card-art" href={`/conferences/${conference.slug}`} aria-label={`View ${conference.name}`}>
+        <span className="conference-state upcoming promo-state">Upcoming</span>
+        <span className="promo-art-kicker">UPCOMING CONFERENCE</span>
+        <strong>{conference.shortName}</strong>
+        <span className="promo-art-year">{conference.slug.includes("2027") ? "2027" : "2026"}</span>
+        <span className="promo-art-place">{conference.venue.split(",").slice(-1)[0].trim()}</span>
+      </Link>
+      <div className="conference-card-body">
+        <div className="conference-title-row"><h3>{conference.name}</h3></div>
+        <p className="info-line"><CalendarDays />{conference.dates}</p>
+        <p className="info-line"><Clock3 />Time to be announced</p>
+        <p className="info-line promo-venue-line"><MapPin /><span title={conference.venue}>{conference.venue}</span></p>
+        <span className="agenda-link is-disabled" aria-disabled="true"><ArrowDownToLine />Download Agenda</span>
+        <div className="card-tags"><span>{conference.category}</span></div>
+        <Link className="button button-primary conference-cta" href={`/conferences/${conference.slug}`}>Register <ArrowRight size={15} /></Link>
+      </div>
+    </article>
+  );
+}
+
+export function PromotionalConferencePage() {
+  const params = useParams<{ slug: string }>();
+  const router = useRouter();
+  const conference = promotionalConferences.find((item) => item.slug === params.slug);
+  if (!conference) {
+    return <SiteLayout><main className="promo-detail-page"><div className="promo-not-found"><h1>Conference not found</h1><Link className="button button-primary" href="/">Back to home</Link></div></main></SiteLayout>;
+  }
+  return (
+    <SiteLayout>
+      <main className="promo-detail-page">
+        <Link href="/#upcoming" className="promo-back-link">← Upcoming conferences</Link>
+        <section className={`promo-detail-hero ${conference.theme}`}>
+          <span className="promo-art-kicker">MEDITALK LIVE · UPCOMING CONFERENCE</span>
+          <h1>{conference.shortName}<span>{conference.slug.includes("2027") ? "2027" : "2026"}</span></h1>
+          <p>{conference.subtitle}</p>
+          <div className="promo-hero-meta"><span><CalendarDays />{conference.dates}</span><span><MapPin />{conference.venue}</span></div>
+        </section>
+        <section className="promo-detail-content">
+          <div>
+            <span className="eyebrow">ABOUT THE CONFERENCE</span>
+            <h2>{conference.name}</h2>
+            <p>{conference.subtitle}</p>
+            <h3>Conference schedule</h3>
+            <ul className="promo-schedule">{conference.schedule.map((item) => <li key={item}><CalendarDays />{item}</li>)}</ul>
+            <h3>Venue</h3>
+            <p className="promo-venue"><MapPin />{conference.venue}</p>
+          </div>
+          <aside className="promo-join-card">
+            <span className="eyebrow">BE PART OF IT</span>
+            <h2>Join the conversation.</h2>
+            <p>Create your Meditalk Live account to continue with conference registration.</p>
+            <button className="button button-primary promo-join-button" onClick={() => router.push("/register")}>Join now <ArrowRight size={19} /></button>
+            <span className="promo-join-note">Registration details will be shared during sign-up.</span>
+          </aside>
+        </section>
+      </main>
+    </SiteLayout>
+  );
+}
+
 export function AuthPage({ mode }: { mode: "login" | "register" }) {
   const { specialities } = useCatalog();
   const router = useRouter();
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [pendingMember, setPendingMember] = useState<Member | null>(null);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email")).trim().toLowerCase();
-    let members: (Member & { password: string })[] = [];
+    let members: (Member & { password?: string })[] = [];
     try {
       members = JSON.parse(
         localStorage.getItem(MEMBERS_KEY) || "[]",
-      ) as (Member & { password: string })[];
+      ) as (Member & { password?: string })[];
     } catch {
       members = [];
     }
-    if (mode === "register") {
-      const password = String(data.get("password"));
-      if (password !== String(data.get("confirmPassword"))) {
-        setError("Your passwords do not match.");
-        return;
+    if (!otpSent) {
+      let profile: Member;
+      if (mode === "register") {
+        if (members.some((item) => item.email === email)) {
+          setError("An account with this email already exists. Please sign in.");
+          return;
+        }
+        profile = {
+          name: String(data.get("name")), email,
+          phoneCode: String(data.get("phoneCode")), mobile: String(data.get("mobile")),
+          institute: String(data.get("institute")), speciality: String(data.get("speciality")),
+        };
+      } else {
+        const existing = members.find((item) => item.email === email);
+        if (!existing) {
+          setError("We couldn’t find an account with that email. Please register first.");
+          return;
+        }
+        const { password: _password, ...savedProfile } = existing;
+        profile = savedProfile;
       }
-      if (members.some((member) => member.email === email)) {
+      setPendingMember(profile);
+      setOtpSent(true);
+      return;
+    }
+    if (String(data.get("otp")).trim() !== "123456" || !pendingMember) {
+      setError("That code isn’t correct. For this demo, enter 123456.");
+      return;
+    }
+    if (mode === "register") {
+      try {
+        members = JSON.parse(localStorage.getItem(MEMBERS_KEY) || "[]") as (Member & { password?: string })[];
+      } catch { members = []; }
+      if (members.some((item) => item.email === pendingMember.email)) {
         setError("An account with this email already exists. Please sign in.");
         return;
       }
-      const member = {
-        name: String(data.get("name")),
-        email,
-        phoneCode: String(data.get("phoneCode")),
-        mobile: String(data.get("mobile")),
-        institute: String(data.get("institute")),
-        speciality: String(data.get("speciality")),
-        password,
-      };
-      localStorage.setItem(MEMBERS_KEY, JSON.stringify([...members, member]));
-      const { password: _password, ...profile } = member;
-      sessionStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
-      const next = new URLSearchParams(window.location.search).get("next");
-      router.push(next?.startsWith("/") ? next : "/member/dashboard");
-      return;
+      localStorage.setItem(MEMBERS_KEY, JSON.stringify([...members, pendingMember]));
     }
-    const member = members.find(
-      (item) =>
-        item.email === email && item.password === String(data.get("password")),
-    );
-    if (!member) {
-      setError(
-        "We couldn’t find an account with those details. Check your email and password, or register.",
-      );
-      return;
-    }
-    const { password: _password, ...profile } = member;
-    sessionStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+    sessionStorage.setItem(MEMBER_KEY, JSON.stringify(pendingMember));
     const next = new URLSearchParams(window.location.search).get("next");
     router.push(next?.startsWith("/") ? next : "/member/dashboard");
   }
@@ -673,7 +731,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
                 : "Join the community"}
             </h2>
           </div>
-          {mode === "register" && (
+          {!otpSent && mode === "register" && (
             <>
               <label>
                 Full Name*
@@ -739,7 +797,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
               </label>
             </>
           )}
-          {mode === "login" && (
+          {!otpSent && mode === "login" && (
             <label>
               Email ID*
               <input
@@ -751,41 +809,15 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
               />
             </label>
           )}
-          <label>
-            Password*
-            <div className="password-wrap">
-              <input
-                name="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete={
-                  mode === "login" ? "current-password" : "new-password"
-                }
-                placeholder="At least 8 characters"
-                minLength={8}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-          </label>
-          {mode === "register" && (
-            <label>
-              Confirm Password*
-              <input
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Enter your password again"
-                minLength={8}
-                required
-              />
-            </label>
+          {otpSent && (
+            <>
+              <p className="otp-notice">A one-time code has been sent to {pendingMember?.email} and {pendingMember?.phoneCode} {pendingMember?.mobile}. For this demo, enter <strong>123456</strong>.</p>
+              <label>One-time password (OTP)*
+                <input name="otp" inputMode="numeric" autoComplete="one-time-code" placeholder="Enter 6-digit OTP" maxLength={6} required />
+              </label>
+            </>
           )}
-          {mode === "register" && (
+          {!otpSent && mode === "register" && (
             <label className="terms-check">
               <input type="checkbox" required />
               <span>
@@ -796,16 +828,14 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
           )}
           {error && <p className="form-error">{error}</p>}
           <button className="button button-primary auth-submit">
-            {mode === "login" ? "Sign in" : "Create account"}
+            {otpSent ? "Verify OTP" : "Send OTP"}
             <ArrowRight size={16} />
           </button>
           <p className="auth-switch">
-            {mode === "login"
+            {otpSent ? "Wrong details?" : mode === "login"
               ? "New to Medtalk Live?"
               : "Already have an account?"}{" "}
-            <Link href={mode === "login" ? "/register" : "/login"}>
-              {mode === "login" ? "Create an account" : "Sign in"}
-            </Link>
+            {otpSent ? <button type="button" className="text-button" onClick={() => { setOtpSent(false); setPendingMember(null); setError(""); }}>Start over</button> : <Link href={mode === "login" ? "/register" : "/login"}>{mode === "login" ? "Create an account" : "Sign in"}</Link>}
           </p>
         </form>
       </main>
@@ -1056,8 +1086,9 @@ export function ConferenceDetail() {
     conferences.find((item) => item.id === Number(id)) ||
     featuredConferences(conferences).find((item) => item.id === Number(id));
   const purchased = usePurchasedLearning(member?.email);
-  const [date, time] =
-    conference?.start.split("|").map((part) => part.trim()) || [];
+  const [date, time] = conference
+    ? conference.start.split("|").map((part: string) => part.trim())
+    : [];
   const hasAccess = Boolean(
     conference &&
     (conference.type === "Free" ||
