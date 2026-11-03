@@ -579,7 +579,7 @@ function PromotionalConferenceCard({ conference }: { conference: (typeof promoti
       <div className="conference-card-body">
         <div className="conference-title-row"><h3>{conference.name}</h3></div>
         <p className="info-line"><CalendarDays />{conference.dates}</p>
-        <p className="info-line"><Clock3 />Time to be announced</p>
+        <p className="info-line"><Clock3 />10:00 AM</p>
         <p className="info-line promo-venue-line"><MapPin /><span title={conference.venue}>{conference.venue}</span></p>
         <span className="agenda-link is-disabled" aria-disabled="true"><ArrowDownToLine />Download Agenda</span>
         <div className="card-tags"><span>{conference.category}</span></div>
