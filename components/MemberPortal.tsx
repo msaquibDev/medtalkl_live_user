@@ -570,11 +570,8 @@ function PromotionalConferenceCard({ conference }: { conference: (typeof promoti
   return (
     <article className={`conference-card promo-card ${conference.theme}`}>
       <Link className="promo-card-art" href={`/conferences/${conference.slug}`} aria-label={`View ${conference.name}`}>
+        <Image src={conference.image} alt={`${conference.name} poster`} fill sizes="(max-width: 700px) 92vw, 360px" unoptimized />
         <span className="conference-state upcoming promo-state">Upcoming</span>
-        <span className="promo-art-kicker">UPCOMING CONFERENCE</span>
-        <strong>{conference.shortName}</strong>
-        <span className="promo-art-year">{conference.slug.includes("2027") ? "2027" : "2026"}</span>
-        <span className="promo-art-place">{conference.venue.split(",").slice(-1)[0].trim()}</span>
       </Link>
       <div className="conference-card-body">
         <div className="conference-title-row"><h3>{conference.name}</h3></div>
@@ -600,11 +597,8 @@ export function PromotionalConferencePage() {
     <SiteLayout>
       <main className="promo-detail-page">
         <Link href="/#upcoming" className="promo-back-link">← Upcoming conferences</Link>
-        <section className={`promo-detail-hero ${conference.theme}`}>
-          <span className="promo-art-kicker">MEDITALK LIVE · UPCOMING CONFERENCE</span>
-          <h1>{conference.shortName}<span>{conference.slug.includes("2027") ? "2027" : "2026"}</span></h1>
-          <p>{conference.subtitle}</p>
-          <div className="promo-hero-meta"><span><CalendarDays />{conference.dates}</span><span><MapPin />{conference.venue}</span></div>
+        <section className="promo-detail-hero">
+          <Image src={conference.image} alt={`${conference.name} poster`} fill priority sizes="(max-width: 900px) 100vw, 1180px" unoptimized />
         </section>
         <section className="promo-detail-content">
           <div>

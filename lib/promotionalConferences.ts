@@ -8,6 +8,7 @@ export type PromotionalConference = {
   venue: string;
   schedule: string[];
   theme: string;
+  image: string;
 };
 
 export const promotionalConferences: PromotionalConference[] = [
@@ -25,6 +26,7 @@ export const promotionalConferences: PromotionalConference[] = [
       "11–13 December 2026 · Main conference",
     ],
     theme: "nsicon",
+    image: "/nsicon2026.png",
   },
   {
     slug: "transmedcon-2026",
@@ -39,6 +41,7 @@ export const promotionalConferences: PromotionalConference[] = [
       "20–22 November 2026 · Conference",
     ],
     theme: "transmedcon",
+    image: "/transmedcon2026.png",
   },
   {
     slug: "ampicon-2026",
@@ -50,6 +53,7 @@ export const promotionalConferences: PromotionalConference[] = [
     venue: "Ravindra Bhavan, Goa",
     schedule: ["10–12 December 2026 · Annual conference"],
     theme: "ampicon",
+    image: "/ampicon2026.png",
   },
   {
     slug: "isnacc-2027",
@@ -61,5 +65,6 @@ export const promotionalConferences: PromotionalConference[] = [
     venue: "Bhubaneswar, Odisha",
     schedule: ["21–23 January 2027 · Annual conference"],
     theme: "isnacc",
+    image: "/isnacc2027.png",
   },
 ];

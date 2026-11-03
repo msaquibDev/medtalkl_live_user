@@ -5836,34 +5836,20 @@ body {
 .promo-card { display: flex; flex-direction: column; }
 .promo-card .conference-card-body { display: flex; flex: 1; flex-direction: column; }
 .promo-card-art {
-  position: relative; display: flex; height: 164px; overflow: hidden; flex-direction: column;
-  justify-content: center; padding: 22px; color: #fff; text-decoration: none;
-  background: radial-gradient(circle at 78% 22%, #ffffff55 0 2px, transparent 3px), linear-gradient(135deg, #173e69, #6488b8);
+  position: relative; display: block; height: 164px; overflow: hidden;
+  padding: 0; background: #fff; text-decoration: none;
 }
-.promo-state { z-index: 2; }
-.promo-card-art::after { position: absolute; content: ""; width: 170px; height: 170px; right: -60px; bottom: -110px; border: 1px solid #ffffff66; border-radius: 50%; box-shadow: 0 0 0 15px #ffffff12, 0 0 0 34px #ffffff0c; }
-.promo-art-kicker { position: relative; z-index: 1; font-size: 9px; font-weight: 800; letter-spacing: .16em; opacity: .85; }
-.promo-card-art strong { position: relative; z-index: 1; margin-top: 7px; font-size: 27px; line-height: 1; letter-spacing: -.04em; }
-.promo-art-year { position: relative; z-index: 1; font-size: 29px; font-weight: 900; line-height: 1.05; }
-.promo-art-place { position: relative; z-index: 1; margin-top: 8px; font-size: 11px; }
-.promo-card.ampicon .promo-card-art, .promo-detail-hero.ampicon { background: radial-gradient(circle at 78% 20%, #ffda82 0 10%, transparent 11%), linear-gradient(135deg, #087e76, #47b8b0 52%, #f2be66); }
-.promo-card.transmedcon .promo-card-art, .promo-detail-hero.transmedcon { background: radial-gradient(ellipse at 80% 0%, #f5c374 0 12%, transparent 13%), linear-gradient(135deg, #762e43, #da574b 55%, #e8a85f); }
-.promo-card.isnacc .promo-card-art, .promo-detail-hero.isnacc { background: radial-gradient(circle at 78% 20%, #f3d281 0 9%, transparent 10%), linear-gradient(135deg, #194f56, #4e9992 55%, #c7a45d); }
-.promo-card.nsicon .promo-card-art, .promo-detail-hero.nsicon { background: radial-gradient(circle at 78% 20%, #a9d2ed 0 11%, transparent 12%), linear-gradient(135deg, #182e51, #4d5c91 56%, #8ba8cb); }
+.promo-card-art img { object-fit: cover; }
+.promo-state { z-index: 2; background: transparent; box-shadow: none; text-shadow: 0 1px 3px #fff; }
 .promo-venue-line { min-width: 0; align-items: center; }
 .promo-venue-line span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .promo-card .conference-cta { margin-top: auto; }
 .promo-detail-page { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 76px; }
 .promo-back-link { display: inline-block; margin-bottom: 18px; color: #087e71; font-weight: 700; text-decoration: none; }
-.promo-detail-hero { position: relative; overflow: hidden; padding: clamp(35px, 6vw, 72px); border-radius: 24px; color: white; background: linear-gradient(135deg, #173e69, #6488b8); }
-.promo-detail-hero::after { position: absolute; content: ""; width: 460px; height: 460px; right: -115px; top: -185px; border: 1px solid #ffffff55; border-radius: 50%; box-shadow: 0 0 0 28px #ffffff12, 0 0 0 66px #ffffff0c; }
-.promo-detail-hero > * { position: relative; z-index: 1; }
-.promo-detail-hero h1 { display: flex; align-items: baseline; gap: 16px; margin: 20px 0 12px; font-size: clamp(42px, 8vw, 82px); letter-spacing: -.055em; line-height: .98; }
-.promo-detail-hero h1 span { font-size: .63em; }
-.promo-detail-hero > p { max-width: 760px; margin: 0; font-size: clamp(16px, 2.3vw, 22px); line-height: 1.5; }
-.promo-hero-meta { display: grid; gap: 12px; max-width: 760px; margin-top: 28px; }
-.promo-hero-meta span, .promo-schedule li, .promo-venue { display: flex; align-items: flex-start; gap: 11px; line-height: 1.5; }
-.promo-hero-meta svg, .promo-schedule svg, .promo-venue svg { flex: 0 0 auto; width: 19px; }
+.promo-detail-hero { position: relative; height: clamp(260px, 52vw, 640px); overflow: hidden; padding: 0; border-radius: 24px; background: #fff; }
+.promo-detail-hero img { object-fit: contain; }
+.promo-schedule li, .promo-venue { display: flex; align-items: flex-start; gap: 11px; line-height: 1.5; }
+.promo-schedule svg, .promo-venue svg { flex: 0 0 auto; width: 19px; }
 .promo-detail-content { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .8fr); gap: 42px; padding: 48px 8px 0; }
 .promo-detail-content h2 { margin: 10px 0; color: #1b3d46; font-size: 30px; }
 .promo-detail-content h3 { margin: 28px 0 12px; color: #244b4b; font-size: 18px; }
@@ -5878,9 +5864,8 @@ body {
 .promo-not-found { padding: 80px 0; text-align: center; }
 @media (max-width: 700px) {
   .promo-detail-page { width: min(100% - 28px, 1180px); padding-top: 22px; }
-  .promo-detail-hero { padding: 32px 24px; border-radius: 18px; }
+  .promo-detail-hero { height: clamp(220px, 62vw, 420px); border-radius: 18px; }
   .promo-detail-content { grid-template-columns: 1fr; gap: 25px; padding: 34px 2px 0; }
-  .promo-detail-hero h1 { flex-wrap: wrap; gap: 8px 14px; }
   .promo-join-card { padding: 24px; }
 }
 .conference-detail-cover {
